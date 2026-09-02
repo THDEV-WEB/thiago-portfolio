@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { socialLinks } from "@/lib/content";
 
 export default function Footer() {
@@ -13,17 +14,27 @@ export default function Footer() {
 
         {activeLinks.length > 0 && (
           <div className="flex gap-4">
-            {activeLinks.map((link) => (
-              <a
-                key={link.label}
-                href={link.href ?? undefined}
-                target="_blank"
-                rel="noreferrer"
-                className="font-medium text-foreground transition-colors hover:text-primary"
-              >
-                {link.label}
-              </a>
-            ))}
+            {activeLinks.map((link) =>
+              link.href?.startsWith("/") ? (
+                <Link
+                  key={link.label}
+                  href={link.href}
+                  className="font-medium text-foreground transition-colors hover:text-primary"
+                >
+                  {link.label}
+                </Link>
+              ) : (
+                <a
+                  key={link.label}
+                  href={link.href ?? undefined}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="font-medium text-foreground transition-colors hover:text-primary"
+                >
+                  {link.label}
+                </a>
+              ),
+            )}
           </div>
         )}
       </div>

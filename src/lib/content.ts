@@ -186,10 +186,16 @@ export const projects: Project[] = [
 ];
 
 export const socialLinks: { label: string; href: string | null }[] = [
-  { label: "GitHub", href: null },
-  { label: "LinkedIn", href: null },
-  { label: "Contato", href: null },
+  { label: "GitHub", href: "https://github.com/THDEV-WEB" },
+  { label: "LinkedIn", href: "https://www.linkedin.com/in/thiagoluizfullstack" },
+  { label: "Contato", href: "/contato" },
 ];
+
+export const contactInfo = {
+  email: "thiagoluiz.fullstack@gmail.com",
+  whatsappNumber: "5538992203620",
+  whatsappDisplay: "+55 (38) 99220-3620",
+};
 
 export const positioningStatement =
   "Hoje minha busca é diferente. Não estou mais procurando apenas uma oportunidade de trabalho. Estou buscando construir uma carreira sólida em tecnologia.";

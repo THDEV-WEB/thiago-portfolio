@@ -47,17 +47,27 @@ export default function Home() {
 
             {activeSocialLinks.length > 0 && (
               <div className="mt-8 flex gap-5 text-sm font-medium text-muted">
-                {activeSocialLinks.map((link) => (
-                  <a
-                    key={link.label}
-                    href={link.href ?? undefined}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="transition-colors hover:text-primary"
-                  >
-                    {link.label}
-                  </a>
-                ))}
+                {activeSocialLinks.map((link) =>
+                  link.href?.startsWith("/") ? (
+                    <Link
+                      key={link.label}
+                      href={link.href}
+                      className="transition-colors hover:text-primary"
+                    >
+                      {link.label}
+                    </Link>
+                  ) : (
+                    <a
+                      key={link.label}
+                      href={link.href ?? undefined}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="transition-colors hover:text-primary"
+                    >
+                      {link.label}
+                    </a>
+                  ),
+                )}
               </div>
             )}
           </div>
