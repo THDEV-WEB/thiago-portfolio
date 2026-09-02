@@ -70,7 +70,7 @@ export default function EncantoProjectPage() {
       </div>
 
       <div className="mt-6 flex flex-wrap gap-2">
-        {["React", "Vite", "Supabase", "PostgreSQL", "Playwright", "Vercel"].map(
+        {["React", "Vite", "JavaScript", "Supabase", "PostgreSQL", "Playwright", "Vercel"].map(
           (tech) => (
             <span
               key={tech}

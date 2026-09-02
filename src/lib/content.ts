@@ -179,7 +179,7 @@ export const projects: Project[] = [
     tagline: "Sistema real de gestão e operação para alimentação, multi-tenant e em produção.",
     description:
       "Plataforma completa para operação de pedidos online — catálogo, checkout, fidelidade, endereços com cálculo de taxa por distância, área do cliente e painel administrativo — projetada e construída do zero para uso real.",
-    stack: ["React", "Vite", "Supabase", "PostgreSQL", "Playwright"],
+    stack: ["React", "Vite", "JavaScript", "Supabase", "PostgreSQL", "Playwright"],
     status: "Em produção",
     href: "/projetos/encanto",
   },
