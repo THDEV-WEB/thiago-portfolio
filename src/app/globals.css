@@ -1,0 +1,63 @@
+@import "tailwindcss";
+
+:root {
+  --background: #f5f9fd;
+  --surface: #ffffff;
+  --foreground: #0f1b2d;
+  --muted: #52667e;
+  --border: #dbe6f2;
+  --primary: #1d4ed8;
+  --primary-foreground: #ffffff;
+  --accent: #38bdf8;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-surface: var(--surface);
+  --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-border: var(--border);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-accent: var(--accent);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+}
+
+/* Scroll-reveal: puramente CSS (sem custo de JS), com fallback estático em
+   navegadores sem suporte a animation-timeline e quando o usuário prefere
+   menos movimento. */
+@media (prefers-reduced-motion: no-preference) {
+  @supports (animation-timeline: view()) {
+    .reveal {
+      animation: reveal-in linear both;
+      animation-timeline: view();
+      animation-range: entry 0% cover 25%;
+    }
+  }
+}
+
+@keyframes reveal-in {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+details.timeline-detail summary {
+  list-style: none;
+}
+
+details.timeline-detail summary::-webkit-details-marker {
+  display: none;
+}
