@@ -47,11 +47,25 @@ import {
   type ProviderCostCell,
 } from "@/lib/awp-content";
 
+const awpTitle = "AWP — Estimativa de Infraestrutura (MVP1)";
+const awpDescription =
+  "Proposta técnica preliminar de infraestrutura e custos para o MVP1 do AWP — Agricultural Wealth Project, sistema de custeio de produção de mandioca.";
+
 export const metadata: Metadata = {
-  title: { absolute: "AWP — Estimativa de Infraestrutura (MVP1)" },
-  description:
-    "Proposta técnica preliminar de infraestrutura e custos para o MVP1 do AWP — Agricultural Wealth Project, sistema de custeio de produção de mandioca.",
+  title: { absolute: awpTitle },
+  description: awpDescription,
   robots: { index: false, follow: false },
+  openGraph: {
+    title: awpTitle,
+    description: awpDescription,
+    type: "website",
+    siteName: "AWP",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: awpTitle,
+    description: awpDescription,
+  },
 };
 
 function Section({
