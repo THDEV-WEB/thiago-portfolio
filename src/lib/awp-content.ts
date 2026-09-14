@@ -115,39 +115,39 @@ export const scenarios: Scenario[] = [
     id: "A",
     title: "Cenário A — Econômico / MVP",
     description:
-      "Infraestrutura gerenciada enxuta, evitando componentes que não sejam necessários inicialmente.",
+      "Menor nível de infraestrutura profissional de produção — ponto de entrada HTTPS estável, sem redundância de banco ou de aplicação.",
     infraDiffs: [
+      "Load Balancer (ALB) como ponto de entrada HTTPS estável, com certificado gerenciado (ACM) e health checks — presente desde o primeiro usuário, não só a partir de um patamar maior.",
+      "Aplicação em 1 instância, atrás do ALB.",
       "Banco de dados Single-AZ: uma única instância, sem failover automático em caso de falha.",
-      "Aplicação em 1 instância.",
-      "Load Balancer (ALB) e NAT Gateway, na AWS, só entram a partir do patamar de 1.000 usuários — é o ponto em que a arquitetura muda (ver Crescimento).",
     ],
   },
   {
     id: "B",
-    title: "Cenário B — Recomendado",
+    title: "Cenário B — Recomendado / Produção",
     description:
-      "Infraestrutura profissional para produção, com segurança, backup, monitoramento e margem razoável de crescimento.",
+      "Mesma arquitetura de entrada do Cenário A, com banco de dados em alta disponibilidade.",
     infraDiffs: [
-      "Banco de dados com alta disponibilidade desde o início — RDS Multi-AZ (AWS) ou Cloud SQL com HA (Google Cloud): failover automático, réplica síncrona. Custo da instância e do storage do banco exatamente o dobro do Cenário A (tarifa oficial de cada provedor, não é estimativa).",
+      "Load Balancer (ALB), igual ao Cenário A.",
       "Aplicação ainda em 1 instância — mesmo dimensionamento de vCPU/RAM do Cenário A.",
-      "Na AWS, Load Balancer (ALB) e NAT Gateway já incluídos desde o primeiro usuário. No Google Cloud, o Cloud Run já expõe HTTPS nativamente, então não existe um componente equivalente a somar — é uma diferença real de arquitetura entre os dois provedores, não uma omissão.",
+      "Banco de dados com alta disponibilidade — RDS Multi-AZ (AWS) ou Cloud SQL com HA (Google Cloud): failover automático, réplica síncrona. Custo da instância e do storage do banco exatamente o dobro do Cenário A (tarifa oficial de cada provedor, não é estimativa).",
     ],
   },
   {
     id: "C",
-    title: "Cenário C — Crescimento / Maior disponibilidade",
+    title: "Cenário C — Crescimento / Alta disponibilidade",
     description:
-      "Infraestrutura preparada para aumento significativo de utilização e maior redundância.",
+      "Tudo do Cenário B, mais redundância também na camada de aplicação.",
     infraDiffs: [
-      "Tudo do Cenário B: banco de dados em alta disponibilidade, e na AWS também Load Balancer e NAT Gateway.",
+      "Load Balancer (ALB), igual aos Cenários A e B.",
       "Aplicação em no mínimo 2 instâncias — elimina o ponto único de falha que ainda existe no Cenário B, agora também na camada de aplicação, não só no banco.",
-      "No patamar de 1.000 usuários, o Cenário A já passa a usar 2 instâncias de aplicação (ver Crescimento); nesse patamar, o Cenário C não soma uma terceira instância — mantém as mesmas 2.",
+      "Banco de dados em alta disponibilidade, igual ao Cenário B.",
     ],
   },
 ];
 
 export const scenariosNote =
-  "Os três cenários têm custo calculado na seção Custos, cada um com sua própria tabela (10 a 1.000 usuários) — não é mais uma estimativa proporcional. O Cenário A é o dimensionamento mínimo de referência; os Cenários B e C somam redundância (ao banco, e no C também à aplicação), calculada com as mesmas tarifas oficiais de cada provedor.";
+  "Os três cenários têm custo calculado na seção Custos, cada um com sua própria tabela (10 a 1.000 usuários) — não é uma estimativa proporcional. Na AWS, o Load Balancer (ALB) está presente nos três cenários como ponto de entrada HTTPS estável — a diferenciação entre A/B/C passou a ser só o nível de disponibilidade (banco e, no C, também aplicação), não mais presença ou ausência de ALB. Essa é uma recomendação técnica desta proposta para manter uma arquitetura coerente de produção, não um requisito já aprovado com o cliente — ver observação em Arquitetura.";
 
 export const providerIntro =
   "Duas alternativas completas e independentes estão sendo avaliadas. Os provedores não são combinados em uma mesma arquitetura.";
@@ -155,8 +155,8 @@ export const providerIntro =
 export const awsArchitecture: ProviderArchitecture = {
   name: "AWS",
   region: "São Paulo (sa-east-1)",
-  flow: ["Internet", "HTTPS / domínio", "ALB (quando utilizado no cenário)", "ECS / Fargate", "RDS PostgreSQL"],
-  services: ["S3", "CloudWatch", "Route 53", "ACM", "VPC", "Backup", "IAM"],
+  flow: ["Internet", "HTTPS / domínio", "ALB", "ECS / Fargate (sub-rede privada)", "RDS PostgreSQL"],
+  services: ["S3", "CloudWatch", "Route 53", "ACM", "VPC", "NAT Gateway", "Backup", "IAM"],
   notes: [
     "Fargate para execução da aplicação em containers (Docker), sem gerenciar servidores diretamente.",
     "RDS PostgreSQL para banco de dados gerenciado.",
@@ -168,10 +168,10 @@ export const awsArchitecture: ProviderArchitecture = {
 };
 
 export const awsDivergenceNote =
-  "Atenção — divergência a validar: o diagrama de referência apresenta um Application Load Balancer (ALB), enquanto a tabela de infraestrutura do mesmo documento indica que o Load Balancer não é inicialmente necessário. Esta é uma decisão arquitetural ainda em aberto, não uma inconsistência já resolvida.";
+  "O documento de referência do Cadenê tinha uma divergência entre suas próprias partes: o diagrama mostrava um Application Load Balancer (ALB), mas a tabela de infraestrutura dizia que o Load Balancer \"não é inicialmente necessário\" (o mesmo valia para alta disponibilidade). Essa ambiguidade original não foi alterada silenciosamente — o que esta proposta faz é uma RECOMENDAÇÃO/REFINAMENTO técnico: usar o ALB como ponto de entrada HTTPS estável nos três cenários (A/B/C), porque sem ele não existe uma forma de expor o ECS/Fargate publicamente com certificado gerenciado (ACM) de forma sustentável — NAT Gateway resolve apenas saída de tráfego, não entrada, e o ACM não se integra diretamente a uma tarefa Fargate sem ALB, CloudFront ou API Gateway na frente. Essa recomendação ainda está sujeita à validação final do Cadenê e do cliente, não é um requisito já aprovado.";
 
 export const awsNatNote =
-  "Quando a arquitetura utilizar o ECS em sub-rede privada, o custo do NAT Gateway também precisa ser considerado no orçamento total.";
+  "Como o ECS/Fargate roda em sub-rede privada atrás do ALB (para não expor o container diretamente à internet), o NAT Gateway é necessário para o tráfego de saída (ex.: baixar a imagem do container, chamadas a APIs externas) — por isso está incluído no custo dos três cenários, junto com o ALB.";
 
 export const gcpArchitecture: ProviderArchitecture = {
   name: "Google Cloud",
@@ -187,53 +187,58 @@ export const gcpArchitecture: ProviderArchitecture = {
 export const providerCostNote =
   "Nenhum dos dois provedores é apresentado como mais barato antes da validação final dos custos.";
 
+export const providerAsymmetryNote =
+  "Assimetria real entre os provedores, não uma omissão: na AWS, o ALB (e o NAT Gateway que ele exige) é necessário nos três cenários para expor o ECS/Fargate com HTTPS de forma sustentável. No Google Cloud, o Cloud Run já expõe HTTPS nativamente com certificado gerenciado, sem precisar de um Load Balancer separado — por isso o Google Cloud nunca soma esse custo, em nenhum dos três cenários.";
+
 export const environmentsFlow = ["Desenvolvimento", "Homologação", "Produção"];
 
 export const environmentsNote =
   "No MVP1, o ambiente de desenvolvimento pode ser executado localmente. Homologação e Produção são ambientes separados, com banco de dados, configurações e credenciais independentes. Não será criada infraestrutura de desenvolvimento em nuvem apenas para ampliar o orçamento.";
 
+export const environmentsCostNote =
+  "Atenção — os valores calculados na seção Custos representam a infraestrutura de UM ambiente (Produção). Homologação exige banco de dados e configurações independentes (ver acima), mas o dimensionamento e o custo de HML ainda não têm uma decisão registrada — não foram somados aos valores desta proposta. Este é um ponto pendente de validação com o cliente antes do orçamento final, não uma omissão silenciosa.";
+
 export const costScenariosSummary =
-  "Veja rápido — o que muda entre A/B/C: os três cenários usam o mesmo dimensionamento de vCPU/RAM; o que muda é a redundância. O Cenário A não tem redundância automática. O Cenário B soma banco de dados em alta disponibilidade (custo do banco em dobro) e, na AWS, Load Balancer + NAT Gateway desde o início — por isso o salto de A para B é proporcionalmente maior na AWS do que no Google Cloud. O Cenário C soma, além disso, uma segunda instância de aplicação, eliminando o último ponto único de falha.";
+  "Veja rápido — o que muda entre A/B/C: os três cenários usam o mesmo dimensionamento de vCPU/RAM e, na AWS, o mesmo Load Balancer (ALB) como ponto de entrada em todos eles. O que muda é só o nível de disponibilidade. O Cenário A não tem redundância automática. O Cenário B soma banco de dados em alta disponibilidade (custo do banco exatamente em dobro). O Cenário C soma, além disso, uma segunda instância de aplicação, eliminando o último ponto único de falha. No Google Cloud não existe um custo de Load Balancer equivalente em nenhum dos três cenários — o Cloud Run já expõe HTTPS nativamente.";
 
 export const costTableRows: CostTableRow[] = [
   {
     users: "10",
-    aws: { monthlyUsd: "US$ 61,85", monthlyBrl: "R$ 314,93", annualUsd: "US$ 742,20", annualBrl: "R$ 3.779,13" },
-    gcp: { monthlyUsd: "US$ 139,30", monthlyBrl: "R$ 709,29", annualUsd: "US$ 1.671,60", annualBrl: "R$ 8.511,45" },
+    aws: { monthlyUsd: "US$ 166,71", monthlyBrl: "R$ 848,85", annualUsd: "US$ 2.000,51", annualBrl: "R$ 10.186,22" },
+    gcp: { monthlyUsd: "US$ 139,30", monthlyBrl: "R$ 709,29", annualUsd: "US$ 1.671,60", annualBrl: "R$ 8.511,43" },
   },
   {
     users: "20 — MVP real",
-    aws: { monthlyUsd: "US$ 62,73", monthlyBrl: "R$ 319,41", annualUsd: "US$ 752,76", annualBrl: "R$ 3.832,90" },
-    gcp: { monthlyUsd: "US$ 139,97", monthlyBrl: "R$ 712,70", annualUsd: "US$ 1.679,64", annualBrl: "R$ 8.552,39" },
+    aws: { monthlyUsd: "US$ 167,86", monthlyBrl: "R$ 854,71", annualUsd: "US$ 2.014,32", annualBrl: "R$ 10.256,51" },
+    gcp: { monthlyUsd: "US$ 139,97", monthlyBrl: "R$ 712,72", annualUsd: "US$ 1.679,70", annualBrl: "R$ 8.552,67" },
     highlight: true,
   },
   {
     users: "50",
-    aws: { monthlyUsd: "US$ 127,83", monthlyBrl: "R$ 650,88", annualUsd: "US$ 1.533,96", annualBrl: "R$ 7.810,62" },
-    gcp: { monthlyUsd: "US$ 191,55", monthlyBrl: "R$ 975,33", annualUsd: "US$ 2.298,60", annualBrl: "R$ 11.704,01" },
+    aws: { monthlyUsd: "US$ 233,62", monthlyBrl: "R$ 1.189,53", annualUsd: "US$ 2.803,40", annualBrl: "R$ 14.274,34" },
+    gcp: { monthlyUsd: "US$ 191,55", monthlyBrl: "R$ 975,36", annualUsd: "US$ 2.298,65", annualBrl: "R$ 11.704,27" },
   },
   {
     users: "100",
-    aws: { monthlyUsd: "US$ 202,63", monthlyBrl: "R$ 1.031,75", annualUsd: "US$ 2.431,56", annualBrl: "R$ 12.381,02" },
-    gcp: { monthlyUsd: "US$ 234,67", monthlyBrl: "R$ 1.194,89", annualUsd: "US$ 2.816,04", annualBrl: "R$ 14.338,71" },
+    aws: { monthlyUsd: "US$ 309,34", monthlyBrl: "R$ 1.575,10", annualUsd: "US$ 3.712,08", annualBrl: "R$ 18.901,17" },
+    gcp: { monthlyUsd: "US$ 234,67", monthlyBrl: "R$ 1.194,91", annualUsd: "US$ 2.816,08", annualBrl: "R$ 14.338,93" },
   },
   {
     users: "500",
-    aws: { monthlyUsd: "US$ 392,66", monthlyBrl: "R$ 1.999,35", annualUsd: "US$ 4.711,92", annualBrl: "R$ 23.992,15" },
-    gcp: { monthlyUsd: "US$ 360,50", monthlyBrl: "R$ 1.835,59", annualUsd: "US$ 4.326,00", annualBrl: "R$ 22.027,13" },
+    aws: { monthlyUsd: "US$ 504,49", monthlyBrl: "R$ 2.568,75", annualUsd: "US$ 6.053,86", annualBrl: "R$ 30.825,02" },
+    gcp: { monthlyUsd: "US$ 360,50", monthlyBrl: "R$ 1.835,59", annualUsd: "US$ 4.325,98", annualBrl: "R$ 22.027,03" },
   },
   {
     users: "1.000",
-    aws: { monthlyUsd: "US$ 900,91", monthlyBrl: "R$ 4.587,25", annualUsd: "US$ 10.810,92", annualBrl: "R$ 55.047,04" },
-    gcp: { monthlyUsd: "US$ 718,90", monthlyBrl: "R$ 3.660,50", annualUsd: "US$ 8.626,80", annualBrl: "R$ 43.925,94" },
+    aws: { monthlyUsd: "US$ 777,10", monthlyBrl: "R$ 3.956,83", annualUsd: "US$ 9.325,18", annualBrl: "R$ 47.481,93" },
+    gcp: { monthlyUsd: "US$ 580,14", monthlyBrl: "R$ 2.953,95", annualUsd: "US$ 6.961,66", annualBrl: "R$ 35.447,38" },
   },
 ];
 
-// Cenário B (Recomendado): mesmo dimensionamento de vCPU/RAM do Cenário A,
-// banco em alta disponibilidade (RDS Multi-AZ / Cloud SQL HA — exatamente 2x
-// o preço da instância e do storage do Cenário A, tarifa oficial) e, na AWS,
-// ALB + NAT Gateway incluídos desde o primeiro usuário (não só a partir de
-// 1.000, como no Cenário A).
+// Cenário B (Recomendado): mesmo dimensionamento de vCPU/RAM e mesmo ALB/NAT
+// do Cenário A, em todos os patamares. A única diferença é o banco em alta
+// disponibilidade (RDS Multi-AZ / Cloud SQL HA — exatamente 2x o preço da
+// instância e do storage do Cenário A, tarifa oficial).
 export const costTableRowsB: CostTableRow[] = [
   {
     users: "10",
@@ -263,18 +268,16 @@ export const costTableRowsB: CostTableRow[] = [
   },
   {
     users: "1.000",
-    aws: { monthlyUsd: "US$ 1.390,01", monthlyBrl: "R$ 7.077,63", annualUsd: "US$ 16.680,07", annualBrl: "R$ 84.931,59" },
-    gcp: { monthlyUsd: "US$ 1.124,58", monthlyBrl: "R$ 5.726,12", annualUsd: "US$ 13.494,92", annualBrl: "R$ 68.713,44" },
+    aws: { monthlyUsd: "US$ 1.266,20", monthlyBrl: "R$ 6.447,23", annualUsd: "US$ 15.194,38", annualBrl: "R$ 77.366,72" },
+    gcp: { monthlyUsd: "US$ 985,82", monthlyBrl: "R$ 5.019,59", annualUsd: "US$ 11.829,82", annualBrl: "R$ 60.235,08" },
   },
 ];
 
 export const costTableNoteB =
-  "O Cenário B usa o mesmo dimensionamento de vCPU/RAM do Cenário A. A diferença é a resiliência: banco de dados em alta disponibilidade — RDS Multi-AZ (AWS) ou Cloud SQL com HA (Google Cloud) — com failover automático, cujo custo de instância e de storage é exatamente o dobro do Cenário A (tarifa oficial de cada provedor, não é estimativa). Na AWS, o Load Balancer (ALB) e o NAT Gateway passam a ser incluídos desde o primeiro usuário, não só a partir de 1.000 como no Cenário A. No Google Cloud não existe um componente de Load Balancer equivalente a somar, porque o Cloud Run já expõe HTTPS nativamente — diferença real de arquitetura entre os provedores, não uma omissão.";
+  "O Cenário B usa o mesmo dimensionamento de vCPU/RAM e a mesma arquitetura de entrada (ALB, na AWS) do Cenário A. A única diferença é a resiliência do banco de dados: alta disponibilidade — RDS Multi-AZ (AWS) ou Cloud SQL com HA (Google Cloud) — com failover automático, cujo custo de instância e de storage é exatamente o dobro do Cenário A (tarifa oficial de cada provedor, não é estimativa).";
 
 // Cenário C (Crescimento/Maior disponibilidade): tudo do Cenário B, mais
-// escala horizontal da aplicação (no mínimo 2 instâncias). No patamar de
-// 1.000 usuários, o Cenário A já usa 2 instâncias — o Cenário C mantém as
-// mesmas 2 nesse patamar, sem somar uma terceira.
+// escala horizontal da aplicação (2 instâncias, em todos os patamares).
 export const costTableRowsC: CostTableRow[] = [
   {
     users: "10",
@@ -310,7 +313,7 @@ export const costTableRowsC: CostTableRow[] = [
 ];
 
 export const costTableNoteC =
-  "O Cenário C soma ao Cenário B a redundância também na camada de aplicação: no mínimo 2 instâncias (Fargate/Cloud Run), eliminando o ponto único de falha que ainda existe no Cenário B. No patamar de 1.000 usuários, o Cenário A já passa a usar 2 instâncias de aplicação (ver Crescimento) — por isso o Cenário C não soma uma terceira instância nesse patamar, os valores de B e C se igualam ali.";
+  "O Cenário C soma ao Cenário B a redundância também na camada de aplicação: 2 instâncias (Fargate/Cloud Run), em todos os patamares, eliminando o ponto único de falha que ainda existe no Cenário B — sem esperar um patamar de usuários específico para isso acontecer.";
 
 export const pricingAsOf = "14 de setembro de 2026";
 
@@ -324,7 +327,7 @@ export const exchangeRate = {
 export const costTableNote =
   "Valores calculados com tarifas oficiais da AWS e do Google Cloud para a região São Paulo, consultadas em " +
   pricingAsOf +
-  ". Esta primeira tabela usa o dimensionamento do Cenário A (Econômico/MVP) — o extremo inferior de cada faixa de vCPU/RAM informada no documento de referência para aquele patamar de usuários (ex.: banco \"1–2 GB\" no patamar de 10 usuários foi calculado com 1 GB) e banco de dados Single-AZ, sem redundância automática. As tabelas dos Cenários B e C, logo abaixo, usam o mesmo dimensionamento de vCPU/RAM, somando redundância (banco em alta disponibilidade e, no Cenário C, também a aplicação). O detalhamento completo — preços unitários, fontes e premissas assumidas (armazenamento de arquivos e tráfego, que ainda não têm medição real) — está descrito abaixo, em \"Como esses valores foram calculados\".";
+  ". Esta primeira tabela usa o dimensionamento do Cenário A (Econômico/MVP) — o extremo inferior de cada faixa de vCPU/RAM informada no documento de referência para aquele patamar de usuários (ex.: banco \"1–2 GB\" no patamar de 10 usuários foi calculado com 1 GB), banco de dados Single-AZ (sem redundância automática) e, na AWS, ALB + NAT Gateway como ponto de entrada HTTPS (ver observação em Arquitetura). As tabelas dos Cenários B e C, logo abaixo, usam o mesmo dimensionamento de vCPU/RAM e o mesmo ALB, somando redundância (banco em alta disponibilidade e, no Cenário C, também a aplicação). O detalhamento completo — preços unitários, fontes e premissas assumidas (armazenamento de arquivos e tráfego, que ainda não têm medição real) — está descrito abaixo, em \"Como esses valores foram calculados\".";
 
 export const exchangeRateNote =
   "Conversões em real (R$) usam a cotação PTAX venda de " +
@@ -344,8 +347,8 @@ export const costMethodologyIntro =
 export const costMethodologyRules = [
   "Dimensionamento: para cada patamar de usuários, foi usado o extremo inferior da faixa de vCPU/RAM/banco informada no documento (ex.: \"4–8 GB\" no banco do patamar de 100 usuários foi calculado como 4 GB) — consistente com a filosofia do próprio documento de infraestrutura enxuta no MVP, e com os dois valores de referência preliminares já publicados anteriormente (Fargate e RDS), que batem exatamente com essa escolha.",
   "Convenção de horas: 730 horas/mês, a mesma convenção usada pela AWS e pelo Google Cloud em suas próprias páginas de preço.",
-  "Load Balancer (ALB) e NAT Gateway: no Cenário A, tratados como componentes opcionais nos patamares de 10 a 500 usuários (consistente com a divergência já sinalizada em Arquitetura), portanto NÃO estão somados no valor principal da AWS nesses patamares — só entram no patamar de 1.000, quando a arquitetura muda de fato (ver Crescimento). Nos Cenários B e C, ambos já entram desde o primeiro usuário.",
-  "Cenários B e C (alta disponibilidade): o banco de dados em alta disponibilidade — RDS Multi-AZ (AWS) ou Cloud SQL com HA (Google Cloud) — tem preço oficial exatamente igual ao dobro da instância e do storage Single-AZ/não-HA em cada patamar (confirmado direto na Price List API da AWS e na página oficial do Google Cloud, não é uma estimativa de 2x aplicada por fora). O Cenário C soma, além disso, uma segunda instância de aplicação (Fargate/Cloud Run) para eliminar o ponto único de falha também nessa camada.",
+  "Load Balancer (ALB) e NAT Gateway: incluídos nos três cenários (A, B e C), em todos os patamares, como refinamento técnico desta proposta sobre o documento de referência (ver observação em Arquitetura) — sem ALB não existe uma forma sustentável de expor o ECS/Fargate publicamente com certificado HTTPS gerenciado. O Google Cloud nunca soma um custo equivalente, porque o Cloud Run expõe HTTPS nativamente (ver observação de assimetria entre provedores).",
+  "Cenários B e C (alta disponibilidade): o banco de dados em alta disponibilidade — RDS Multi-AZ (AWS) ou Cloud SQL com HA (Google Cloud) — tem preço oficial exatamente igual ao dobro da instância e do storage Single-AZ/não-HA em cada patamar (confirmado direto na Price List API da AWS e na página oficial do Google Cloud, não é uma estimativa de 2x aplicada por fora). O Cenário C soma, além disso, uma segunda instância de aplicação (Fargate/Cloud Run), em todos os patamares, para eliminar o ponto único de falha também nessa camada.",
   "Armazenamento de arquivos e tráfego de rede: o documento de referência afirma explicitamente que \"não existe estimativa precisa de tráfego\" — por isso, os volumes usados no cálculo (de 5 GB/mês no patamar de 10 usuários até 200 GB/mês no patamar de 1.000) são uma ASSUNÇÃO de referência, proporcional ao número de usuários, e não um dado confirmado. Esse é o principal ponto a validar com o cliente antes de fechar o orçamento.",
   "Banco de dados: na AWS, cada patamar foi mapeado para a menor classe de instância RDS (família t4g, burstable) que atende ao extremo inferior da faixa de RAM. No Google Cloud, o Cloud SQL foi calculado com o mesmo vCPU/RAM equivalente à classe RDS escolhida, já que o Cloud SQL cobra por vCPU e GiB de forma granular (não por classe fixa).",
   "Google Cloud Run e Cloud SQL trocam a tabela de preços por região via JavaScript, então não ficam visíveis em uma leitura estática da página — os valores usados aqui foram confirmados navegando essas páginas com navegador automatizado e a região São Paulo (southamerica-east1) explicitamente selecionada, não por cruzamento com fonte secundária.",
@@ -395,7 +398,7 @@ export const sizingAssumptions: SizingAssumption[] = [
   },
   {
     users: "1.000 (extrapolado)",
-    appSpec: "2 vCPU / 4 GB × 2 instâncias (escala horizontal, com ALB)",
+    appSpec: "2 vCPU / 4 GB (1 instância — 2 no Cenário C)",
     dbSpec: "4 vCPU / 16 GB (classe db.t4g.xlarge / equivalente)",
     dbStorageGb: "400 GB",
     filesGb: "200 GB",
@@ -418,7 +421,7 @@ export const awsDetailCards: DetailCard[] = [
   },
   {
     name: "ALB",
-    role: "Balanceamento de carga e ponto de entrada HTTPS — decisão arquitetural ainda em validação (ver observação em Arquitetura).",
+    role: "Ponto de entrada HTTPS estável e balanceamento de carga — presente nos três cenários como refinamento técnico desta proposta (ver observação em Arquitetura).",
     referenceCost: "US$ 0,034/hora (≈ US$ 24,82/mês) + US$ 0,011/LCU-hora.",
   },
   {
@@ -538,13 +541,13 @@ export const backupDistinctionNote =
 export const growthSteps = ["10", "50", "100", "500", "1.000"];
 
 export const growthText =
-  "O objetivo não é provisionar infraestrutura para 500 ou 1.000 usuários desde o primeiro dia. A arquitetura deve permitir evolução progressiva, acompanhando métricas reais como usuários ativos, requisições, CPU, memória, consultas ao banco, tamanho do banco, armazenamento, latência, disponibilidade e volume de arquivos — isso permitirá identificar o ponto em que será necessário alterar a arquitetura. No cálculo desta proposta, esse ponto já aparece de forma concreta na AWS: até 500 usuários, uma única instância de aplicação atende; no patamar de 1.000 usuários (extrapolado, fora do documento original), a arquitetura passa a exigir Load Balancer e duas instâncias de aplicação, elevando o custo além do simples dobro do patamar anterior. Recomenda-se revisar o dimensionamento real após o início da operação, em vez de assumir os patamares extrapolados como definitivos.";
+  "O objetivo não é provisionar infraestrutura para 500 ou 1.000 usuários desde o primeiro dia. A arquitetura deve permitir evolução progressiva, acompanhando métricas reais como usuários ativos, requisições, CPU, memória, consultas ao banco, tamanho do banco, armazenamento, latência, disponibilidade e volume de arquivos — tanto dentro de um mesmo cenário (aumentando vCPU/RAM/storage da mesma instância, patamar a patamar) quanto entre cenários (migrando de A para B quando a continuidade do banco de dados se tornar crítica, e de B para C quando a aplicação também precisar de redundância). O patamar de 1.000 usuários é extrapolado — não consta no documento de referência original — e usado aqui só como teto de referência para o exercício de dimensionamento. Recomenda-se revisar o dimensionamento real após o início da operação, em vez de assumir os patamares extrapolados como definitivos.";
 
 export const recommendationText =
   "A recomendação deve considerar não apenas o menor preço, mas o equilíbrio entre custo, segurança, operação, backup, continuidade, escalabilidade e complexidade administrativa.";
 
 export const recommendationFinding =
-  "Com os valores calculados (Cenário A / Econômico), a AWS tende a custar menos nos patamares de 10 a 100 usuários; a partir de 500 usuários, a diferença se inverte e o Google Cloud fica mais barato no cálculo — tendência que se mantém em 1.000 usuários, quando a arquitetura AWS passa a exigir Load Balancer e duas instâncias de aplicação. Nos Cenários B e C, esse mesmo cruzamento acontece bem mais cedo — entre 50 e 100 usuários — porque o Load Balancer e o NAT Gateway da AWS, incluídos desde o primeiro usuário nesses cenários, somam um custo fixo relativamente alto nos patamares menores. Essa comparação depende diretamente das premissas assumidas (principalmente tráfego e armazenamento de arquivos, ainda não confirmados) e não considera fatores fora de preço, como familiaridade da equipe, suporte e serviços já em uso.";
+  "Com o ALB presente nos três cenários da AWS (ver Arquitetura), o resultado da comparação de preço muda de forma relevante em relação a uma arquitetura sem ALB: no Cenário A, o Google Cloud fica mais barato que a AWS em TODOS os patamares calculados, de 10 a 1.000 usuários — o custo fixo do ALB + NAT Gateway (por volta de US$ 105 a US$ 118/mês, dependendo do tráfego) pesa mais do que a vantagem de preço do Fargate nesses patamares. Nos Cenários B e C, a AWS ainda é mais barata nos patamares menores (10, 20 e 50 usuários) — porque o custo adicional do banco em alta disponibilidade pesa proporcionalmente mais no Google Cloud nesses patamares —, mas o cruzamento acontece entre 50 e 100 usuários, a partir de onde o Google Cloud volta a ficar mais barato. Essa comparação depende diretamente das premissas assumidas (principalmente tráfego e armazenamento de arquivos, ainda não confirmados) e não considera fatores fora de preço, como familiaridade da equipe, suporte e serviços já em uso.";
 
 export const recommendationStatusNote =
   "Os valores acima já refletem tarifas oficiais calculadas e confirmadas diretamente nas páginas/API de cada provedor para a região São Paulo (ver Custos), sem cruzamento de fonte. Ainda assim, a escolha final entre AWS e Google Cloud depende da validação das premissas de tráfego e armazenamento com o cliente — por isso, nenhum provedor é declarado aqui como opção definitiva.";

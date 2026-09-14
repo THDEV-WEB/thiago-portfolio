@@ -20,6 +20,7 @@ import {
   costTableRowsB,
   costTableRowsC,
   disclaimerScopeNote,
+  environmentsCostNote,
   environmentsFlow,
   environmentsNote,
   executiveSummary,
@@ -38,6 +39,7 @@ import {
   preliminaryCostWarning,
   pricingSources,
   pricingSourcesNote,
+  providerAsymmetryNote,
   providerCostNote,
   providerIntro,
   recommendationFinding,
@@ -410,6 +412,9 @@ export default function AwpPage() {
           </div>
 
           <p className="mt-6 max-w-3xl text-sm leading-relaxed text-muted">{providerCostNote}</p>
+          <div className="mt-4">
+            <Callout tone="info">{providerAsymmetryNote}</Callout>
+          </div>
 
           <div className="mt-10 rounded-2xl border border-border bg-surface p-6">
             <h3 className="text-sm font-semibold text-foreground">Ambientes</h3>
@@ -417,6 +422,9 @@ export default function AwpPage() {
               <FlowSteps steps={environmentsFlow} />
             </div>
             <p className="mt-4 text-sm leading-relaxed text-muted">{environmentsNote}</p>
+            <div className="mt-4">
+              <Callout tone="warning">{environmentsCostNote}</Callout>
+            </div>
           </div>
         </Section>
 
