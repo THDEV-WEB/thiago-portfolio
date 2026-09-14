@@ -13,7 +13,11 @@ import {
   costMethodologyIntro,
   costMethodologyRules,
   costTableNote,
+  costTableNoteB,
+  costTableNoteC,
   costTableRows,
+  costTableRowsB,
+  costTableRowsC,
   disclaimerScopeNote,
   environmentsFlow,
   environmentsNote,
@@ -241,10 +245,24 @@ export default function AwpPage() {
         <Section id="cenarios" title="Cenários">
           <div className="grid gap-6 sm:grid-cols-3">
             {scenarios.map((scenario) => (
-              <div key={scenario.id} className="rounded-2xl border border-border bg-surface p-6">
-                <h3 className="text-sm font-semibold text-foreground">{scenario.title}</h3>
+              <a
+                key={scenario.id}
+                href={`#custos-cenario-${scenario.id.toLowerCase()}`}
+                className="block rounded-2xl border border-border bg-surface p-6 transition-colors hover:border-primary/60 hover:bg-primary/5"
+              >
+                <h3 className="text-sm font-semibold text-foreground">
+                  {scenario.title} <span className="font-normal text-primary">→ ver custos</span>
+                </h3>
                 <p className="mt-3 text-sm leading-relaxed text-muted">{scenario.description}</p>
-              </div>
+                <ul className="mt-4 space-y-2">
+                  {scenario.infraDiffs.map((diff) => (
+                    <li key={diff} className="flex gap-2 text-xs leading-relaxed text-muted">
+                      <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-primary" />
+                      {diff}
+                    </li>
+                  ))}
+                </ul>
+              </a>
             ))}
           </div>
           <p className="mt-6 max-w-3xl text-sm leading-relaxed text-muted">{scenariosNote}</p>
@@ -278,7 +296,10 @@ export default function AwpPage() {
         </Section>
 
         <Section id="custos" title="Detalhamento de custos">
-          <div className="overflow-x-auto rounded-2xl border border-border">
+          <h3 id="custos-cenario-a" className="scroll-mt-24 text-sm font-semibold text-foreground">
+            Cenário A — Econômico / MVP
+          </h3>
+          <div className="mt-4 overflow-x-auto rounded-2xl border border-border">
             <table className="w-full min-w-[560px] border-collapse text-sm">
               <thead>
                 <tr className="bg-surface text-left">
@@ -306,7 +327,72 @@ export default function AwpPage() {
             </table>
           </div>
           <p className="mt-4 max-w-3xl text-sm leading-relaxed text-muted">{costTableNote}</p>
-          <p className="mt-3 max-w-3xl text-xs leading-relaxed text-muted">{exchangeRateNote}</p>
+
+          <h3 id="custos-cenario-b" className="mt-12 scroll-mt-24 text-sm font-semibold text-foreground">
+            Cenário B — Recomendado
+          </h3>
+          <div className="mt-4 overflow-x-auto rounded-2xl border border-border">
+            <table className="w-full min-w-[560px] border-collapse text-sm">
+              <thead>
+                <tr className="bg-surface text-left">
+                  <th className="px-4 py-3 font-semibold text-foreground">Usuários</th>
+                  <th className="px-4 py-3 font-semibold text-foreground">AWS</th>
+                  <th className="px-4 py-3 font-semibold text-foreground">Google Cloud</th>
+                </tr>
+              </thead>
+              <tbody>
+                {costTableRowsB.map((row) => (
+                  <tr
+                    key={row.users}
+                    className={`border-t border-border align-top ${row.highlight ? "bg-primary/5" : ""}`}
+                  >
+                    <td className="px-4 py-3 font-medium text-foreground">{row.users}</td>
+                    <td className="px-4 py-3 text-sm">
+                      <CostCell cell={row.aws} />
+                    </td>
+                    <td className="px-4 py-3 text-sm">
+                      <CostCell cell={row.gcp} />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <p className="mt-4 max-w-3xl text-sm leading-relaxed text-muted">{costTableNoteB}</p>
+
+          <h3 id="custos-cenario-c" className="mt-12 scroll-mt-24 text-sm font-semibold text-foreground">
+            Cenário C — Crescimento / Maior disponibilidade
+          </h3>
+          <div className="mt-4 overflow-x-auto rounded-2xl border border-border">
+            <table className="w-full min-w-[560px] border-collapse text-sm">
+              <thead>
+                <tr className="bg-surface text-left">
+                  <th className="px-4 py-3 font-semibold text-foreground">Usuários</th>
+                  <th className="px-4 py-3 font-semibold text-foreground">AWS</th>
+                  <th className="px-4 py-3 font-semibold text-foreground">Google Cloud</th>
+                </tr>
+              </thead>
+              <tbody>
+                {costTableRowsC.map((row) => (
+                  <tr
+                    key={row.users}
+                    className={`border-t border-border align-top ${row.highlight ? "bg-primary/5" : ""}`}
+                  >
+                    <td className="px-4 py-3 font-medium text-foreground">{row.users}</td>
+                    <td className="px-4 py-3 text-sm">
+                      <CostCell cell={row.aws} />
+                    </td>
+                    <td className="px-4 py-3 text-sm">
+                      <CostCell cell={row.gcp} />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <p className="mt-4 max-w-3xl text-sm leading-relaxed text-muted">{costTableNoteC}</p>
+
+          <p className="mt-8 max-w-3xl text-xs leading-relaxed text-muted">{exchangeRateNote}</p>
 
           <div className="mt-10">
             <Callout tone="warning">{preliminaryCostWarning}</Callout>
