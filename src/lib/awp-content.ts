@@ -179,33 +179,33 @@ export const environmentsNote =
 export const costTableRows: CostTableRow[] = [
   {
     users: "10",
-    aws: { monthlyUsd: "US$ 60,85", monthlyBrl: "R$ 309,84", annualUsd: "US$ 730,20", annualBrl: "R$ 3.718,03" },
+    aws: { monthlyUsd: "US$ 61,85", monthlyBrl: "R$ 314,93", annualUsd: "US$ 742,20", annualBrl: "R$ 3.779,13" },
     gcp: { monthlyUsd: "US$ 139,30", monthlyBrl: "R$ 709,29", annualUsd: "US$ 1.671,60", annualBrl: "R$ 8.511,45" },
   },
   {
     users: "20 — MVP real",
-    aws: { monthlyUsd: "US$ 60,98", monthlyBrl: "R$ 310,50", annualUsd: "US$ 731,76", annualBrl: "R$ 3.725,98" },
+    aws: { monthlyUsd: "US$ 62,73", monthlyBrl: "R$ 319,41", annualUsd: "US$ 752,76", annualBrl: "R$ 3.832,90" },
     gcp: { monthlyUsd: "US$ 139,97", monthlyBrl: "R$ 712,70", annualUsd: "US$ 1.679,64", annualBrl: "R$ 8.552,39" },
     highlight: true,
   },
   {
     users: "50",
-    aws: { monthlyUsd: "US$ 124,33", monthlyBrl: "R$ 633,06", annualUsd: "US$ 1.491,96", annualBrl: "R$ 7.596,76" },
+    aws: { monthlyUsd: "US$ 127,83", monthlyBrl: "R$ 650,88", annualUsd: "US$ 1.533,96", annualBrl: "R$ 7.810,62" },
     gcp: { monthlyUsd: "US$ 191,55", monthlyBrl: "R$ 975,33", annualUsd: "US$ 2.298,60", annualBrl: "R$ 11.704,01" },
   },
   {
     users: "100",
-    aws: { monthlyUsd: "US$ 196,63", monthlyBrl: "R$ 1.001,20", annualUsd: "US$ 2.359,56", annualBrl: "R$ 12.014,41" },
+    aws: { monthlyUsd: "US$ 202,63", monthlyBrl: "R$ 1.031,75", annualUsd: "US$ 2.431,56", annualBrl: "R$ 12.381,02" },
     gcp: { monthlyUsd: "US$ 234,67", monthlyBrl: "R$ 1.194,89", annualUsd: "US$ 2.816,04", annualBrl: "R$ 14.338,71" },
   },
   {
     users: "500",
-    aws: { monthlyUsd: "US$ 372,91", monthlyBrl: "R$ 1.898,78", annualUsd: "US$ 4.474,92", annualBrl: "R$ 22.785,40" },
+    aws: { monthlyUsd: "US$ 392,66", monthlyBrl: "R$ 1.999,35", annualUsd: "US$ 4.711,92", annualBrl: "R$ 23.992,15" },
     gcp: { monthlyUsd: "US$ 360,50", monthlyBrl: "R$ 1.835,59", annualUsd: "US$ 4.326,00", annualBrl: "R$ 22.027,13" },
   },
   {
     users: "1.000",
-    aws: { monthlyUsd: "US$ 871,16", monthlyBrl: "R$ 4.435,77", annualUsd: "US$ 10.453,92", annualBrl: "R$ 53.229,27" },
+    aws: { monthlyUsd: "US$ 900,91", monthlyBrl: "R$ 4.587,25", annualUsd: "US$ 10.810,92", annualBrl: "R$ 55.047,04" },
     gcp: { monthlyUsd: "US$ 718,90", monthlyBrl: "R$ 3.660,50", annualUsd: "US$ 8.626,80", annualBrl: "R$ 43.925,94" },
   },
 ];
@@ -245,7 +245,7 @@ export const costMethodologyRules = [
   "Load Balancer (ALB) e NAT Gateway: tratados como componentes opcionais nos patamares de 10 a 500 usuários (consistente com a divergência já sinalizada em Arquitetura), portanto NÃO estão somados no valor principal da AWS nesses patamares. No patamar de 1.000 usuários, ambos passam a ser somados — é o ponto em que a arquitetura muda de fato (ver Crescimento).",
   "Armazenamento de arquivos e tráfego de rede: o documento de referência afirma explicitamente que \"não existe estimativa precisa de tráfego\" — por isso, os volumes usados no cálculo (de 5 GB/mês no patamar de 10 usuários até 200 GB/mês no patamar de 1.000) são uma ASSUNÇÃO de referência, proporcional ao número de usuários, e não um dado confirmado. Esse é o principal ponto a validar com o cliente antes de fechar o orçamento.",
   "Banco de dados: na AWS, cada patamar foi mapeado para a menor classe de instância RDS (família t4g, burstable) que atende ao extremo inferior da faixa de RAM. No Google Cloud, o Cloud SQL foi calculado com o mesmo vCPU/RAM equivalente à classe RDS escolhida, já que o Cloud SQL cobra por vCPU e GiB de forma granular (não por classe fixa).",
-  "Google Cloud Run e parte do Cloud SQL para a região São Paulo exigiram confirmação por navegador headless ou cruzamento com fonte secundária, porque essas páginas oficiais trocam a região por JavaScript. Recomenda-se uma conferência visual manual desses dois itens em cloud.google.com/run/pricing e cloud.google.com/sql/pricing antes da apresentação final ao cliente.",
+  "Google Cloud Run e Cloud SQL trocam a tabela de preços por região via JavaScript, então não ficam visíveis em uma leitura estática da página — os valores usados aqui foram confirmados navegando essas páginas com navegador automatizado e a região São Paulo (southamerica-east1) explicitamente selecionada, não por cruzamento com fonte secundária.",
   "Por que 10 e 20 usuários custam quase o mesmo: infraestrutura gerenciada é paga pela capacidade reservada (a tarefa Fargate e a instância de banco ficam ligadas o mês inteiro), não por usuário. Como o documento não define um dimensionamento próprio para 20 usuários, foi reaproveitada a mesma capacidade do patamar de 10 — por isso a diferença entre as duas linhas é só o pequeno acréscimo assumido em armazenamento de arquivos e tráfego. O custo sobe em degraus (quando a tabela oficial pede uma instância maior), não em linha reta a cada novo usuário.",
 ];
 
@@ -357,7 +357,7 @@ export const awsDetailCards: DetailCard[] = [
     name: "Tráfego / rede",
     role: "Tráfego de saída de dados (data transfer).",
     referenceCost:
-      "Primeiros 100 GB/mês grátis (franquia global da conta). Acima disso, US$ 0,15/GB até 10 TB/mês.",
+      "Primeiro 1 GB/mês grátis. Acima disso, US$ 0,25/GB até 10 TB/mês, US$ 0,23/GB até 50 TB/mês, US$ 0,21/GB até 150 TB/mês, US$ 0,19/GB acima disso.",
   },
 ];
 
@@ -366,7 +366,7 @@ export const gcpDetailCards: DetailCard[] = [
     name: "Cloud Run",
     role: "Execução da aplicação em containers, sem gerenciar servidores diretamente.",
     referenceCost:
-      "US$ 0,0000216/vCPU-segundo + US$ 0,0000024/GiB-segundo (modo CPU sempre alocada, São Paulo — valor obtido por confirmação cruzada, recomenda-se conferência visual final).",
+      "US$ 0,0000216/vCPU-segundo + US$ 0,0000024/GiB-segundo (modo CPU sempre alocada, São Paulo — confirmado diretamente na página oficial com a região selecionada).",
   },
   {
     name: "Cloud SQL",
@@ -441,10 +441,10 @@ export const recommendationText =
   "A recomendação deve considerar não apenas o menor preço, mas o equilíbrio entre custo, segurança, operação, backup, continuidade, escalabilidade e complexidade administrativa.";
 
 export const recommendationFinding =
-  "Com os valores calculados (Cenário A / Econômico), a AWS tende a custar menos nos patamares de 10 a 500 usuários; a partir de 1.000 usuários — quando a arquitetura AWS passa a exigir Load Balancer e duas instâncias de aplicação — a diferença se inverte e o Google Cloud fica mais barato no cálculo. Essa comparação depende diretamente das premissas assumidas (principalmente tráfego e armazenamento de arquivos, ainda não confirmados) e não considera fatores fora de preço, como familiaridade da equipe, suporte e serviços já em uso.";
+  "Com os valores calculados (Cenário A / Econômico), a AWS tende a custar menos nos patamares de 10 a 100 usuários; a partir de 500 usuários, a diferença se inverte e o Google Cloud fica mais barato no cálculo — tendência que se mantém em 1.000 usuários, quando a arquitetura AWS passa a exigir Load Balancer e duas instâncias de aplicação. Essa comparação depende diretamente das premissas assumidas (principalmente tráfego e armazenamento de arquivos, ainda não confirmados) e não considera fatores fora de preço, como familiaridade da equipe, suporte e serviços já em uso.";
 
 export const recommendationStatusNote =
-  "Os valores acima já refletem tarifas oficiais calculadas (ver Custos), mas a escolha final entre AWS e Google Cloud ainda depende da validação das premissas de tráfego e armazenamento com o cliente, e de uma conferência manual dos dois itens do Google Cloud marcados como confirmação cruzada. Por isso, nenhum provedor é declarado aqui como opção definitiva.";
+  "Os valores acima já refletem tarifas oficiais calculadas e confirmadas diretamente nas páginas/API de cada provedor para a região São Paulo (ver Custos), sem cruzamento de fonte. Ainda assim, a escolha final entre AWS e Google Cloud depende da validação das premissas de tráfego e armazenamento com o cliente — por isso, nenhum provedor é declarado aqui como opção definitiva.";
 
 export const pricingSources: PricingSource[] = [
   { label: "AWS Pricing Calculator", href: "https://calculator.aws/" },
@@ -475,7 +475,7 @@ export const pricingSources: PricingSource[] = [
 export const pricingSourcesNote =
   "Os valores desta proposta foram obtidos prioritariamente da AWS Price List API (a mesma fonte de dados oficial que alimenta a AWS Pricing Calculator) e das páginas oficiais do Google Cloud, consultadas em " +
   pricingAsOf +
-  ". Fontes de terceiros só foram usadas como pista inicial, nunca como valor final — em caso de diferença, prevalece o valor oficial. Dois itens do Google Cloud (Cloud Run e parte do Cloud SQL para São Paulo) exigiram confirmação por navegador headless ou cruzamento com fonte secundária, porque essas páginas trocam a região por JavaScript — recomenda-se uma conferência visual final nessas duas páginas antes da contratação.";
+  " com a região São Paulo (sa-east-1 / southamerica-east1) confirmada explicitamente em cada fonte — inclusive Cloud Run e Cloud SQL, cujas tabelas trocam de região via JavaScript e por isso foram conferidas com navegador automatizado, não por cruzamento com fonte secundária. Fontes de terceiros só foram usadas como pista inicial, nunca como valor final — em caso de diferença, prevalece o valor oficial.";
 
 export const financialDisclaimer =
   "Os valores apresentados constituem uma estimativa preliminar de infraestrutura. O custo efetivo pode variar conforme consumo de CPU, memória, armazenamento, tráfego, logs, backups, retenção, número de requisições, crescimento do banco e demais recursos utilizados. A estimativa final deve ser validada nas calculadoras oficiais dos provedores antes da contratação.";
