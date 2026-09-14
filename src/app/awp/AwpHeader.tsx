@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 type Section = { id: string; label: string };
 
@@ -14,6 +14,8 @@ export default function AwpHeader({
 }) {
   const [activeId, setActiveId] = useState(sections[0]?.id ?? "");
   const [open, setOpen] = useState(false);
+  const [pastTopHeader, setPastTopHeader] = useState(false);
+  const topHeaderRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
     const elements = sections
@@ -38,6 +40,24 @@ export default function AwpHeader({
     return () => observer.disconnect();
   }, [sections]);
 
+  // Desktop: o header normal (com as categorias na horizontal) vive no fluxo
+  // normal da página, no topo. A pill fixa no canto só aparece quando esse
+  // header sai de vista ao rolar a tela.
+  useEffect(() => {
+    const el = topHeaderRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        const past = !entry.isIntersecting;
+        setPastTopHeader(past);
+        if (!past) setOpen(false);
+      },
+      { threshold: 0 },
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
   useEffect(() => {
     if (!open) return;
     function handleClickOutside(event: MouseEvent) {
@@ -59,23 +79,56 @@ export default function AwpHeader({
   return (
     <>
       {/*
-        Desktop/notebook: avatar + nome + navegação, fixos ao rolar a tela.
-        Precisa ser irmão direto do wrapper de página inteira (nao filho de
-        um <header> curto) — position:sticky só consegue "grudar" enquanto a
-        tela nao passa do fim do PAI do elemento, entao um container curto
-        limita a distância que ele fica fixo.
+        Desktop/notebook, estado no topo: header normal (não fixo), com
+        avatar + nome + categorias na horizontal, dentro do fluxo da página.
       */}
-      <header className="hidden border-b border-border/70 bg-background/90 backdrop-blur-md sm:sticky sm:top-0 sm:z-50 sm:block">
-        <div className="mx-auto flex max-w-5xl items-center gap-3 px-6 py-4">
+      <header ref={topHeaderRef} className="hidden border-b border-border/70 bg-background sm:block">
+        <div className="mx-auto flex max-w-5xl flex-wrap items-center gap-x-6 gap-y-3 px-6 py-4">
+          <div className="flex items-center gap-3">
+            {avatar}
+            <p className="text-sm font-semibold tracking-tight text-foreground">AWP</p>
+          </div>
+
+          <nav className="no-print flex flex-wrap items-center gap-x-5 gap-y-1 text-sm">
+            {sections.map((section) => (
+              <a
+                key={section.id}
+                href={`#${section.id}`}
+                className={`font-medium transition-colors ${
+                  activeId === section.id ? "text-primary" : "text-muted hover:text-foreground"
+                }`}
+              >
+                {section.label}
+              </a>
+            ))}
+          </nav>
+        </div>
+      </header>
+
+      {/*
+        Desktop/notebook, estado ao rolar: quando o header acima sai de vista,
+        essa pill compacta assume no canto superior esquerdo e fica fixa.
+        Precisa ser irmã direta do wrapper de página inteira (não filha de um
+        <header> curto) — position:fixed não depende disso, mas mantemos o
+        padrão para não repetir o bug de containment do sticky.
+      */}
+      <div
+        className={`no-print fixed left-6 top-4 z-50 hidden transition-all duration-200 sm:block ${
+          pastTopHeader
+            ? "pointer-events-auto translate-y-0 opacity-100"
+            : "pointer-events-none -translate-y-2 opacity-0"
+        }`}
+      >
+        <div className="flex items-center gap-3 rounded-full border border-border bg-surface/95 px-4 py-2 shadow-lg backdrop-blur-md">
           {avatar}
           <p className="text-sm font-semibold tracking-tight text-foreground">AWP</p>
 
-          <div className="no-print relative ml-2" data-awp-dropdown>
+          <div className="relative" data-awp-dropdown>
             <button
               type="button"
               onClick={() => setOpen((v) => !v)}
               aria-expanded={open}
-              className="flex items-center gap-1.5 rounded-full border border-border bg-surface px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-foreground/5"
+              className="flex items-center gap-1.5 rounded-full border border-border bg-background px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-foreground/5"
             >
               Seções
               <span className={`text-[10px] transition-transform ${open ? "rotate-180" : ""}`}>▾</span>
@@ -101,7 +154,7 @@ export default function AwpHeader({
             )}
           </div>
         </div>
-      </header>
+      </div>
 
       {/* Mobile: nome + avatar, rola normalmente (não fixo) */}
       <header className="border-b border-border/70 px-6 py-5 sm:hidden">
