@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
+import AwpHeader from "./AwpHeader";
 import {
+  awpAvatarSrc,
   awsArchitecture,
   awsDetailCards,
   awsDivergenceNote,
@@ -7,6 +9,7 @@ import {
   backupBullets,
   backupDistinctionNote,
   backupRetentionNote,
+  closingNote,
   costMethodologyIntro,
   costMethodologyRules,
   costTableNote,
@@ -166,24 +169,7 @@ export default function AwpPage() {
   return (
     <div className="awp-page bg-background text-foreground">
       {/* Cabeçalho próprio do AWP — sem a navegação do portfólio */}
-      <header className="border-b border-border/70">
-        <div className="mx-auto max-w-5xl px-6 py-5">
-          <p className="text-sm font-semibold tracking-tight text-foreground">AWP</p>
-        </div>
-        <nav className="no-print border-t border-border/40 bg-surface/60">
-          <div className="mx-auto flex max-w-5xl gap-1 overflow-x-auto px-6 py-2 text-sm">
-            {navSections.map((item) => (
-              <a
-                key={item.id}
-                href={`#${item.id}`}
-                className="shrink-0 rounded-full px-3 py-1.5 font-medium text-muted transition-colors hover:bg-foreground/5 hover:text-foreground"
-              >
-                {item.label}
-              </a>
-            ))}
-          </div>
-        </nav>
-      </header>
+      <AwpHeader sections={navSections} avatarSrc={awpAvatarSrc} />
 
       {/* Hero */}
       <section className="mx-auto max-w-5xl px-6 pb-14 pt-14 sm:pt-16">
@@ -434,6 +420,13 @@ export default function AwpPage() {
           <p className="max-w-3xl text-sm leading-relaxed text-muted">{financialDisclaimer}</p>
           <p className="mt-4 max-w-3xl text-sm leading-relaxed text-muted">{disclaimerScopeNote}</p>
         </Section>
+
+        <div className="mt-16 border-t border-border/70 pt-8 text-center">
+          <p className="text-sm font-medium text-foreground">
+            AWP — Estimativa de Infraestrutura (MVP1) · Preparado por {preparedBy} · {preparedDate}
+          </p>
+          <p className="mt-2 text-xs text-muted">{closingNote}</p>
+        </div>
       </div>
     </div>
   );

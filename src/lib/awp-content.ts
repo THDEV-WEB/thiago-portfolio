@@ -66,6 +66,8 @@ export const navSections = [
 
 export const preparedBy = "Thiago / Equipe AWP";
 export const preparedDate = "14 de setembro de 2026";
+export const awpAvatarSrc: string | null = "/awp-perfil.jpg";
+export const closingNote = "Documento vivo, sujeito a revisão conforme validação das premissas com o cliente.";
 
 export const heroBadges = [
   "2 empresas",
