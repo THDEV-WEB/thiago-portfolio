@@ -25,6 +25,11 @@ export type DetailCard = {
   referenceCost?: string;
 };
 
+export type PricingSource = {
+  label: string;
+  href: string;
+};
+
 export type Scenario = {
   id: string;
   title: string;
@@ -390,17 +395,30 @@ export const recommendationFinding =
 export const recommendationStatusNote =
   "Os valores acima já refletem tarifas oficiais calculadas (ver Custos), mas a escolha final entre AWS e Google Cloud ainda depende da validação das premissas de tráfego e armazenamento com o cliente, e de uma conferência manual dos dois itens do Google Cloud marcados como confirmação cruzada. Por isso, nenhum provedor é declarado aqui como opção definitiva.";
 
-export const pricingSources = [
-  "AWS Pricing Calculator",
-  "AWS Fargate Pricing",
-  "AWS RDS for PostgreSQL Pricing",
-  "AWS Elastic Load Balancing Pricing",
-  "AWS VPC Pricing (NAT Gateway)",
-  "AWS S3 Pricing",
-  "AWS Backup Pricing",
-  "Google Cloud Run Pricing",
-  "Google Cloud SQL Pricing",
-  "Google Cloud Storage Pricing",
+export const pricingSources: PricingSource[] = [
+  { label: "AWS Pricing Calculator", href: "https://calculator.aws/" },
+  { label: "AWS Fargate Pricing", href: "https://aws.amazon.com/fargate/pricing/" },
+  { label: "AWS RDS for PostgreSQL Pricing", href: "https://aws.amazon.com/rds/postgresql/pricing/" },
+  {
+    label: "AWS Elastic Load Balancing Pricing",
+    href: "https://aws.amazon.com/elasticloadbalancing/pricing/",
+  },
+  { label: "AWS VPC Pricing (NAT Gateway)", href: "https://aws.amazon.com/vpc/pricing/" },
+  { label: "AWS S3 Pricing", href: "https://aws.amazon.com/s3/pricing/" },
+  { label: "AWS CloudWatch Pricing", href: "https://aws.amazon.com/cloudwatch/pricing/" },
+  { label: "AWS Route 53 Pricing", href: "https://aws.amazon.com/route53/pricing/" },
+  { label: "AWS Certificate Manager Pricing", href: "https://aws.amazon.com/certificate-manager/pricing/" },
+  { label: "AWS Backup Pricing", href: "https://aws.amazon.com/backup/pricing/" },
+  {
+    label: "AWS Data Transfer Pricing",
+    href: "https://aws.amazon.com/ec2/pricing/on-demand/",
+  },
+  { label: "Google Cloud Run Pricing", href: "https://cloud.google.com/run/pricing" },
+  { label: "Google Cloud SQL Pricing", href: "https://cloud.google.com/sql/pricing" },
+  { label: "Google Cloud Storage Pricing", href: "https://cloud.google.com/storage/pricing" },
+  { label: "Google Cloud Observability Pricing", href: "https://cloud.google.com/stackdriver/pricing" },
+  { label: "Google Cloud DNS Pricing", href: "https://cloud.google.com/dns/pricing" },
+  { label: "Google Cloud VPC Network Pricing", href: "https://cloud.google.com/vpc/network-pricing" },
 ];
 
 export const pricingSourcesNote =
@@ -412,4 +430,4 @@ export const financialDisclaimer =
   "Os valores apresentados constituem uma estimativa preliminar de infraestrutura. O custo efetivo pode variar conforme consumo de CPU, memória, armazenamento, tráfego, logs, backups, retenção, número de requisições, crescimento do banco e demais recursos utilizados. A estimativa final deve ser validada nas calculadoras oficiais dos provedores antes da contratação.";
 
 export const disclaimerScopeNote =
-  "Os valores em dólar refletem exclusivamente o preço de lista publicado pela AWS e pelo Google Cloud, sem nenhum imposto brasileiro somado. Uma compra internacional como esta costuma envolver custos adicionais — por exemplo IOF sobre a operação financeira internacional e, dependendo de como o contrato e o pagamento forem estruturados, tributos sobre importação de serviços (como ISS, PIS/COFINS-Importação e IRRF). Esses valores dependem do regime tributário da empresa contratante e não foram calculados aqui — é uma validação a fazer com o contador antes de fechar o orçamento com o cliente. Domínio e outros serviços externos eventualmente necessários também podem não estar incluídos, salvo quando explicitamente indicados.";
+  "Os valores em dólar refletem exclusivamente o preço de lista publicado pela AWS e pelo Google Cloud, sem nenhum imposto brasileiro somado. Uma compra internacional como esta costuma envolver custos adicionais — por exemplo IOF sobre a operação financeira internacional e, dependendo de como o contrato e o pagamento forem estruturados, tributos sobre importação de serviços (como ISS, PIS/COFINS-Importação e IRRF). Esses valores dependem do regime tributário da empresa contratante e não foram calculados aqui.";

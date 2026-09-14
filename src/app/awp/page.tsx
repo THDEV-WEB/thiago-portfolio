@@ -389,8 +389,15 @@ export default function AwpPage() {
         <Section id="fontes" title="Fontes de preços">
           <ul className="grid gap-x-8 gap-y-2 sm:grid-cols-2">
             {pricingSources.map((source) => (
-              <li key={source} className="text-sm leading-relaxed text-foreground">
-                {source}
+              <li key={source.label} className="text-sm leading-relaxed">
+                <a
+                  href={source.href}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-foreground underline decoration-border underline-offset-4 transition-colors hover:text-primary hover:decoration-primary"
+                >
+                  {source.label} ↗
+                </a>
               </li>
             ))}
           </ul>
