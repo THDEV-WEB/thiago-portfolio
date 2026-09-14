@@ -192,6 +192,9 @@ export const environmentsFlow = ["Desenvolvimento", "Homologação", "Produção
 export const environmentsNote =
   "No MVP1, o ambiente de desenvolvimento pode ser executado localmente. Homologação e Produção são ambientes separados, com banco de dados, configurações e credenciais independentes. Não será criada infraestrutura de desenvolvimento em nuvem apenas para ampliar o orçamento.";
 
+export const costScenariosSummary =
+  "Veja rápido — o que muda entre A/B/C: os três cenários usam o mesmo dimensionamento de vCPU/RAM; o que muda é a redundância. O Cenário A não tem redundância automática. O Cenário B soma banco de dados em alta disponibilidade (custo do banco em dobro) e, na AWS, Load Balancer + NAT Gateway desde o início — por isso o salto de A para B é proporcionalmente maior na AWS do que no Google Cloud. O Cenário C soma, além disso, uma segunda instância de aplicação, eliminando o último ponto único de falha.";
+
 export const costTableRows: CostTableRow[] = [
   {
     users: "10",

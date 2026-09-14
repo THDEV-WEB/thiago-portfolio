@@ -12,6 +12,7 @@ import {
   closingNote,
   costMethodologyIntro,
   costMethodologyRules,
+  costScenariosSummary,
   costTableNote,
   costTableNoteB,
   costTableNoteC,
@@ -296,7 +297,9 @@ export default function AwpPage() {
         </Section>
 
         <Section id="custos" title="Detalhamento de custos">
-          <h3 id="custos-cenario-a" className="scroll-mt-24 text-sm font-semibold text-foreground">
+          <Callout tone="info">{costScenariosSummary}</Callout>
+
+          <h3 id="custos-cenario-a" className="mt-10 scroll-mt-24 text-sm font-semibold text-foreground">
             Cenário A — Econômico / MVP
           </h3>
           <div className="mt-4 overflow-x-auto rounded-2xl border border-border">
