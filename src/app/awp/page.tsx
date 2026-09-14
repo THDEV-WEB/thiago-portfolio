@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import {
   awsArchitecture,
   awsDetailCards,
@@ -435,16 +434,6 @@ export default function AwpPage() {
           <p className="max-w-3xl text-sm leading-relaxed text-muted">{financialDisclaimer}</p>
           <p className="mt-4 max-w-3xl text-sm leading-relaxed text-muted">{disclaimerScopeNote}</p>
         </Section>
-
-        <div className="no-print mt-16 flex flex-col items-center gap-4 border-t border-border/70 pt-12 text-center">
-          <p className="text-sm text-muted">Quer conhecer outros projetos?</p>
-          <Link
-            href="/"
-            className="rounded-full border border-border bg-surface px-6 py-3 text-sm font-semibold text-foreground transition-transform hover:-translate-y-0.5 hover:shadow-md"
-          >
-            Ver portfólio
-          </Link>
-        </div>
       </div>
     </div>
   );
