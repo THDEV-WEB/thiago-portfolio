@@ -47,9 +47,11 @@ import {
   scenariosNote,
   securityBullets,
   sizingAssumptions,
+  type CostTableRow,
   type DetailCard,
   type ProviderArchitecture,
   type ProviderCostCell,
+  type SizingAssumption,
 } from "@/lib/awp-content";
 
 const awpTitle = "AWP — Estimativa de Infraestrutura (MVP1)";
@@ -162,6 +164,128 @@ function CostCell({ cell }: { cell: ProviderCostCell }) {
       </p>
       <p className="text-xs text-muted">≈ {cell.annualBrl} /ano</p>
     </div>
+  );
+}
+
+function CostTable({ rows }: { rows: CostTableRow[] }) {
+  return (
+    <>
+      {/* Mobile: cartões empilhados — evita a tabela forçar scroll horizontal
+          e esconder a coluna do Google Cloud fora da tela sem nenhum aviso. */}
+      <div className="space-y-3 sm:hidden">
+        {rows.map((row) => (
+          <div
+            key={row.users}
+            className={`rounded-2xl border border-border p-4 ${row.highlight ? "bg-primary/5" : "bg-surface"}`}
+          >
+            <p className="text-sm font-semibold text-foreground">{row.users} usuários</p>
+            <div className="mt-3 border-t border-border/70 pt-3">
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted">AWS</p>
+              <div className="mt-1.5">
+                <CostCell cell={row.aws} />
+              </div>
+            </div>
+            <div className="mt-3 border-t border-border/70 pt-3">
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted">Google Cloud</p>
+              <div className="mt-1.5">
+                <CostCell cell={row.gcp} />
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* sm e acima: tabela normal, com scroll horizontal só se a tela for
+          menor que o conteúdo (não deveria acontecer a partir do sm). */}
+      <div className="hidden overflow-x-auto rounded-2xl border border-border sm:block">
+        <table className="w-full min-w-[560px] border-collapse text-sm">
+          <thead>
+            <tr className="bg-surface text-left">
+              <th className="px-4 py-3 font-semibold text-foreground">Usuários</th>
+              <th className="px-4 py-3 font-semibold text-foreground">AWS</th>
+              <th className="px-4 py-3 font-semibold text-foreground">Google Cloud</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row) => (
+              <tr
+                key={row.users}
+                className={`border-t border-border align-top ${row.highlight ? "bg-primary/5" : ""}`}
+              >
+                <td className="px-4 py-3 font-medium text-foreground">{row.users}</td>
+                <td className="px-4 py-3 text-sm">
+                  <CostCell cell={row.aws} />
+                </td>
+                <td className="px-4 py-3 text-sm">
+                  <CostCell cell={row.gcp} />
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </>
+  );
+}
+
+function SizingTable({ rows }: { rows: SizingAssumption[] }) {
+  const fields: { key: keyof SizingAssumption; label: string; italic?: boolean }[] = [
+    { key: "appSpec", label: "Aplicação" },
+    { key: "dbSpec", label: "Banco" },
+    { key: "dbStorageGb", label: "Storage banco" },
+    { key: "filesGb", label: "Arquivos (assunção)", italic: true },
+    { key: "trafficGb", label: "Tráfego (assunção)", italic: true },
+  ];
+
+  return (
+    <>
+      {/* Mobile: cartões, mesmo motivo do CostTable — 6 colunas não cabem
+          na tela sem esconder conteúdo atrás de scroll horizontal. */}
+      <div className="space-y-3 sm:hidden">
+        {rows.map((row) => (
+          <div key={row.users} className="rounded-2xl border border-border bg-surface p-4">
+            <p className="text-sm font-semibold text-foreground">{row.users} usuários</p>
+            <dl className="mt-3 space-y-2">
+              {fields.map((field) => (
+                <div key={field.key}>
+                  <dt className="text-xs font-semibold uppercase tracking-wide text-muted">{field.label}</dt>
+                  <dd className={`mt-0.5 text-sm text-foreground ${field.italic ? "italic" : ""}`}>
+                    {row[field.key]}
+                  </dd>
+                </div>
+              ))}
+            </dl>
+          </div>
+        ))}
+      </div>
+
+      <div className="hidden overflow-x-auto rounded-2xl border border-border sm:block">
+        <table className="w-full min-w-[640px] border-collapse text-sm">
+          <thead>
+            <tr className="bg-surface text-left">
+              <th className="px-4 py-3 font-semibold text-foreground">Usuários</th>
+              <th className="px-4 py-3 font-semibold text-foreground">Aplicação</th>
+              <th className="px-4 py-3 font-semibold text-foreground">Banco</th>
+              <th className="px-4 py-3 font-semibold text-foreground">Storage banco</th>
+              <th className="px-4 py-3 font-semibold text-foreground">Arquivos (assunção)</th>
+              <th className="px-4 py-3 font-semibold text-foreground">Tráfego (assunção)</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row) => (
+              <tr key={row.users} className="border-t border-border">
+                <td className="px-4 py-3 font-medium text-foreground">{row.users}</td>
+                <td className="px-4 py-3 text-muted">{row.appSpec}</td>
+                <td className="px-4 py-3 text-muted">{row.dbSpec}</td>
+                <td className="px-4 py-3 text-muted">{row.dbStorageGb}</td>
+                <td className="px-4 py-3 italic text-muted">{row.filesGb}</td>
+                <td className="px-4 py-3 italic text-muted">{row.trafficGb}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </>
   );
 }
 
@@ -302,96 +426,24 @@ export default function AwpPage() {
           <h3 id="custos-cenario-a" className="mt-10 scroll-mt-24 text-sm font-semibold text-foreground">
             Cenário A — Econômico / MVP
           </h3>
-          <div className="mt-4 overflow-x-auto rounded-2xl border border-border">
-            <table className="w-full min-w-[560px] border-collapse text-sm">
-              <thead>
-                <tr className="bg-surface text-left">
-                  <th className="px-4 py-3 font-semibold text-foreground">Usuários</th>
-                  <th className="px-4 py-3 font-semibold text-foreground">AWS</th>
-                  <th className="px-4 py-3 font-semibold text-foreground">Google Cloud</th>
-                </tr>
-              </thead>
-              <tbody>
-                {costTableRows.map((row) => (
-                  <tr
-                    key={row.users}
-                    className={`border-t border-border align-top ${row.highlight ? "bg-primary/5" : ""}`}
-                  >
-                    <td className="px-4 py-3 font-medium text-foreground">{row.users}</td>
-                    <td className="px-4 py-3 text-sm">
-                      <CostCell cell={row.aws} />
-                    </td>
-                    <td className="px-4 py-3 text-sm">
-                      <CostCell cell={row.gcp} />
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div className="mt-4">
+            <CostTable rows={costTableRows} />
           </div>
           <p className="mt-4 max-w-3xl text-sm leading-relaxed text-muted">{costTableNote}</p>
 
           <h3 id="custos-cenario-b" className="mt-12 scroll-mt-24 text-sm font-semibold text-foreground">
             Cenário B — Recomendado
           </h3>
-          <div className="mt-4 overflow-x-auto rounded-2xl border border-border">
-            <table className="w-full min-w-[560px] border-collapse text-sm">
-              <thead>
-                <tr className="bg-surface text-left">
-                  <th className="px-4 py-3 font-semibold text-foreground">Usuários</th>
-                  <th className="px-4 py-3 font-semibold text-foreground">AWS</th>
-                  <th className="px-4 py-3 font-semibold text-foreground">Google Cloud</th>
-                </tr>
-              </thead>
-              <tbody>
-                {costTableRowsB.map((row) => (
-                  <tr
-                    key={row.users}
-                    className={`border-t border-border align-top ${row.highlight ? "bg-primary/5" : ""}`}
-                  >
-                    <td className="px-4 py-3 font-medium text-foreground">{row.users}</td>
-                    <td className="px-4 py-3 text-sm">
-                      <CostCell cell={row.aws} />
-                    </td>
-                    <td className="px-4 py-3 text-sm">
-                      <CostCell cell={row.gcp} />
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div className="mt-4">
+            <CostTable rows={costTableRowsB} />
           </div>
           <p className="mt-4 max-w-3xl text-sm leading-relaxed text-muted">{costTableNoteB}</p>
 
           <h3 id="custos-cenario-c" className="mt-12 scroll-mt-24 text-sm font-semibold text-foreground">
             Cenário C — Crescimento / Maior disponibilidade
           </h3>
-          <div className="mt-4 overflow-x-auto rounded-2xl border border-border">
-            <table className="w-full min-w-[560px] border-collapse text-sm">
-              <thead>
-                <tr className="bg-surface text-left">
-                  <th className="px-4 py-3 font-semibold text-foreground">Usuários</th>
-                  <th className="px-4 py-3 font-semibold text-foreground">AWS</th>
-                  <th className="px-4 py-3 font-semibold text-foreground">Google Cloud</th>
-                </tr>
-              </thead>
-              <tbody>
-                {costTableRowsC.map((row) => (
-                  <tr
-                    key={row.users}
-                    className={`border-t border-border align-top ${row.highlight ? "bg-primary/5" : ""}`}
-                  >
-                    <td className="px-4 py-3 font-medium text-foreground">{row.users}</td>
-                    <td className="px-4 py-3 text-sm">
-                      <CostCell cell={row.aws} />
-                    </td>
-                    <td className="px-4 py-3 text-sm">
-                      <CostCell cell={row.gcp} />
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div className="mt-4">
+            <CostTable rows={costTableRowsC} />
           </div>
           <p className="mt-4 max-w-3xl text-sm leading-relaxed text-muted">{costTableNoteC}</p>
 
@@ -417,31 +469,8 @@ export default function AwpPage() {
           <p className="mt-8 text-xs font-semibold uppercase tracking-wide text-muted">
             Dimensionamento e premissas usadas em cada patamar
           </p>
-          <div className="mt-3 overflow-x-auto rounded-2xl border border-border">
-            <table className="w-full min-w-[640px] border-collapse text-sm">
-              <thead>
-                <tr className="bg-surface text-left">
-                  <th className="px-4 py-3 font-semibold text-foreground">Usuários</th>
-                  <th className="px-4 py-3 font-semibold text-foreground">Aplicação</th>
-                  <th className="px-4 py-3 font-semibold text-foreground">Banco</th>
-                  <th className="px-4 py-3 font-semibold text-foreground">Storage banco</th>
-                  <th className="px-4 py-3 font-semibold text-foreground">Arquivos (assunção)</th>
-                  <th className="px-4 py-3 font-semibold text-foreground">Tráfego (assunção)</th>
-                </tr>
-              </thead>
-              <tbody>
-                {sizingAssumptions.map((row) => (
-                  <tr key={row.users} className="border-t border-border">
-                    <td className="px-4 py-3 font-medium text-foreground">{row.users}</td>
-                    <td className="px-4 py-3 text-muted">{row.appSpec}</td>
-                    <td className="px-4 py-3 text-muted">{row.dbSpec}</td>
-                    <td className="px-4 py-3 text-muted">{row.dbStorageGb}</td>
-                    <td className="px-4 py-3 italic text-muted">{row.filesGb}</td>
-                    <td className="px-4 py-3 italic text-muted">{row.trafficGb}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div className="mt-3">
+            <SizingTable rows={sizingAssumptions} />
           </div>
 
           <h3 className="mt-12 text-xs font-semibold uppercase tracking-widest text-muted">
