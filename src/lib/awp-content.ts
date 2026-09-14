@@ -12,10 +12,17 @@ export type ProviderArchitecture = {
   notes: string[];
 };
 
+export type ProviderCostCell = {
+  monthlyUsd: string;
+  monthlyBrl: string;
+  annualUsd: string;
+  annualBrl: string;
+};
+
 export type CostTableRow = {
   users: string;
-  aws: string;
-  gcp: string;
+  aws: ProviderCostCell;
+  gcp: ProviderCostCell;
   highlight?: boolean;
 };
 
@@ -56,6 +63,9 @@ export const navSections = [
   { id: "crescimento", label: "Crescimento" },
   { id: "recomendacao", label: "Recomendação" },
 ];
+
+export const preparedBy = "Thiago / Equipe AWP";
+export const preparedDate = "14 de setembro de 2026";
 
 export const heroBadges = [
   "2 empresas",
@@ -165,20 +175,59 @@ export const environmentsNote =
   "No MVP1, o ambiente de desenvolvimento pode ser executado localmente. Homologação e Produção são ambientes separados, com banco de dados, configurações e credenciais independentes. Não será criada infraestrutura de desenvolvimento em nuvem apenas para ampliar o orçamento.";
 
 export const costTableRows: CostTableRow[] = [
-  { users: "10", aws: "US$ 60,85", gcp: "US$ 139,30" },
-  { users: "20 — MVP real", aws: "US$ 60,98", gcp: "US$ 139,97", highlight: true },
-  { users: "50", aws: "US$ 124,33", gcp: "US$ 191,55" },
-  { users: "100", aws: "US$ 196,63", gcp: "US$ 234,67" },
-  { users: "500", aws: "US$ 372,91", gcp: "US$ 360,50" },
-  { users: "1.000", aws: "US$ 871,16", gcp: "US$ 718,90" },
+  {
+    users: "10",
+    aws: { monthlyUsd: "US$ 60,85", monthlyBrl: "R$ 309,84", annualUsd: "US$ 730,20", annualBrl: "R$ 3.718,03" },
+    gcp: { monthlyUsd: "US$ 139,30", monthlyBrl: "R$ 709,29", annualUsd: "US$ 1.671,60", annualBrl: "R$ 8.511,45" },
+  },
+  {
+    users: "20 — MVP real",
+    aws: { monthlyUsd: "US$ 60,98", monthlyBrl: "R$ 310,50", annualUsd: "US$ 731,76", annualBrl: "R$ 3.725,98" },
+    gcp: { monthlyUsd: "US$ 139,97", monthlyBrl: "R$ 712,70", annualUsd: "US$ 1.679,64", annualBrl: "R$ 8.552,39" },
+    highlight: true,
+  },
+  {
+    users: "50",
+    aws: { monthlyUsd: "US$ 124,33", monthlyBrl: "R$ 633,06", annualUsd: "US$ 1.491,96", annualBrl: "R$ 7.596,76" },
+    gcp: { monthlyUsd: "US$ 191,55", monthlyBrl: "R$ 975,33", annualUsd: "US$ 2.298,60", annualBrl: "R$ 11.704,01" },
+  },
+  {
+    users: "100",
+    aws: { monthlyUsd: "US$ 196,63", monthlyBrl: "R$ 1.001,20", annualUsd: "US$ 2.359,56", annualBrl: "R$ 12.014,41" },
+    gcp: { monthlyUsd: "US$ 234,67", monthlyBrl: "R$ 1.194,89", annualUsd: "US$ 2.816,04", annualBrl: "R$ 14.338,71" },
+  },
+  {
+    users: "500",
+    aws: { monthlyUsd: "US$ 372,91", monthlyBrl: "R$ 1.898,78", annualUsd: "US$ 4.474,92", annualBrl: "R$ 22.785,40" },
+    gcp: { monthlyUsd: "US$ 360,50", monthlyBrl: "R$ 1.835,59", annualUsd: "US$ 4.326,00", annualBrl: "R$ 22.027,13" },
+  },
+  {
+    users: "1.000",
+    aws: { monthlyUsd: "US$ 871,16", monthlyBrl: "R$ 4.435,77", annualUsd: "US$ 10.453,92", annualBrl: "R$ 53.229,27" },
+    gcp: { monthlyUsd: "US$ 718,90", monthlyBrl: "R$ 3.660,50", annualUsd: "US$ 8.626,80", annualBrl: "R$ 43.925,94" },
+  },
 ];
 
 export const pricingAsOf = "14 de setembro de 2026";
+
+export const exchangeRate = {
+  value: "R$ 5,0918",
+  label: "Dólar comercial (venda), PTAX — Banco Central do Brasil",
+  asOf: "11 de setembro de 2026",
+  note: "Última cotação publicada pelo Banco Central até a data desta proposta (14/09/2026 é o próximo dia útil; o PTAX não é publicado em fins de semana).",
+};
 
 export const costTableNote =
   "Valores calculados com tarifas oficiais da AWS e do Google Cloud para a região São Paulo, consultadas em " +
   pricingAsOf +
   ". Cada linha usa o dimensionamento do Cenário A (Econômico/MVP) — o extremo inferior de cada faixa de vCPU/RAM informada no documento de referência para aquele patamar de usuários (ex.: banco \"1–2 GB\" no patamar de 10 usuários foi calculado com 1 GB). Usar o extremo superior da mesma faixa (mais próximo do Cenário B/C) eleva o custo do banco de dados em até 2x em alguns patamares. O detalhamento completo — preços unitários, fontes e premissas assumidas (armazenamento de arquivos e tráfego, que ainda não têm medição real) — está descrito abaixo, em \"Como esses valores foram calculados\".";
+
+export const exchangeRateNote =
+  "Conversões em real (R$) usam a cotação PTAX venda de " +
+  exchangeRate.asOf +
+  " (" +
+  exchangeRate.value +
+  " — Banco Central do Brasil), são aproximadas e NÃO incluem impostos (IOF, ISS, PIS/COFINS-Importação ou similares) nem o spread cambial cobrado pela operadora do cartão ou banco. A cotação do dólar varia diariamente — o valor em real no momento da cobrança será diferente do calculado aqui. Servem apenas como referência de grandeza para leitura em real; o valor contratual efetivo é sempre em dólar.";
 
 export const preliminaryCostWarning =
   "Os valores acima foram calculados a partir de tarifas oficiais publicadas pela AWS e pelo Google Cloud (ver metodologia e fontes abaixo), mas ainda dependem de premissas que não foram validadas com o cliente — principalmente volume de arquivos armazenados e tráfego de rede, que ainda não têm medição real de uso. Também não incluem impostos. Recomenda-se uma conferência final na calculadora oficial de cada provedor antes da contratação.";

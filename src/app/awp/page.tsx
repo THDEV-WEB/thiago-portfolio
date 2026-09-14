@@ -16,6 +16,7 @@ import {
   environmentsFlow,
   environmentsNote,
   executiveSummary,
+  exchangeRateNote,
   financialDisclaimer,
   gcpArchitecture,
   gcpDetailCards,
@@ -23,6 +24,8 @@ import {
   growthText,
   heroBadges,
   navSections,
+  preparedBy,
+  preparedDate,
   premises,
   premisesNote,
   preliminaryCostWarning,
@@ -39,6 +42,7 @@ import {
   sizingAssumptions,
   type DetailCard,
   type ProviderArchitecture,
+  type ProviderCostCell,
 } from "@/lib/awp-content";
 
 export const metadata: Metadata = {
@@ -125,6 +129,21 @@ function ProviderCard({ provider, note }: { provider: ProviderArchitecture; note
   );
 }
 
+function CostCell({ cell }: { cell: ProviderCostCell }) {
+  return (
+    <div className="leading-snug">
+      <p className="font-semibold text-foreground">
+        {cell.monthlyUsd} <span className="font-normal text-muted">/mês</span>
+      </p>
+      <p className="text-xs text-muted">≈ {cell.monthlyBrl} /mês</p>
+      <p className="mt-1.5 text-foreground">
+        {cell.annualUsd} <span className="text-muted">/ano</span>
+      </p>
+      <p className="text-xs text-muted">≈ {cell.annualBrl} /ano</p>
+    </div>
+  );
+}
+
 function DetailCardGrid({ cards }: { cards: DetailCard[] }) {
   return (
     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -146,13 +165,13 @@ function DetailCardGrid({ cards }: { cards: DetailCard[] }) {
 
 export default function AwpPage() {
   return (
-    <div className="bg-background text-foreground">
+    <div className="awp-page bg-background text-foreground">
       {/* Cabeçalho próprio do AWP — sem a navegação do portfólio */}
       <header className="border-b border-border/70">
         <div className="mx-auto max-w-5xl px-6 py-5">
           <p className="text-sm font-semibold tracking-tight text-foreground">AWP</p>
         </div>
-        <nav className="border-t border-border/40 bg-surface/60">
+        <nav className="no-print border-t border-border/40 bg-surface/60">
           <div className="mx-auto flex max-w-5xl gap-1 overflow-x-auto px-6 py-2 text-sm">
             {navSections.map((item) => (
               <a
@@ -178,6 +197,9 @@ export default function AwpPage() {
         </p>
         <p className="mt-6 max-w-2xl text-lg leading-relaxed text-muted">
           Proposta preliminar de infraestrutura para o sistema de custeio de produção de mandioca.
+        </p>
+        <p className="mt-3 text-sm font-medium text-muted">
+          Preparado por {preparedBy} · {preparedDate}
         </p>
 
         <div className="mt-8 flex flex-wrap gap-2">
@@ -258,7 +280,7 @@ export default function AwpPage() {
 
         <Section id="custos" title="Detalhamento de custos">
           <div className="overflow-x-auto rounded-2xl border border-border">
-            <table className="w-full min-w-[420px] border-collapse text-sm">
+            <table className="w-full min-w-[560px] border-collapse text-sm">
               <thead>
                 <tr className="bg-surface text-left">
                   <th className="px-4 py-3 font-semibold text-foreground">Usuários</th>
@@ -270,17 +292,22 @@ export default function AwpPage() {
                 {costTableRows.map((row) => (
                   <tr
                     key={row.users}
-                    className={`border-t border-border ${row.highlight ? "bg-primary/5" : ""}`}
+                    className={`border-t border-border align-top ${row.highlight ? "bg-primary/5" : ""}`}
                   >
                     <td className="px-4 py-3 font-medium text-foreground">{row.users}</td>
-                    <td className="px-4 py-3 italic text-muted">{row.aws}</td>
-                    <td className="px-4 py-3 italic text-muted">{row.gcp}</td>
+                    <td className="px-4 py-3 text-sm">
+                      <CostCell cell={row.aws} />
+                    </td>
+                    <td className="px-4 py-3 text-sm">
+                      <CostCell cell={row.gcp} />
+                    </td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
           <p className="mt-4 max-w-3xl text-sm leading-relaxed text-muted">{costTableNote}</p>
+          <p className="mt-3 max-w-3xl text-xs leading-relaxed text-muted">{exchangeRateNote}</p>
 
           <div className="mt-10">
             <Callout tone="warning">{preliminaryCostWarning}</Callout>
@@ -409,7 +436,7 @@ export default function AwpPage() {
           <p className="mt-4 max-w-3xl text-sm leading-relaxed text-muted">{disclaimerScopeNote}</p>
         </Section>
 
-        <div className="mt-16 flex flex-col items-center gap-4 border-t border-border/70 pt-12 text-center">
+        <div className="no-print mt-16 flex flex-col items-center gap-4 border-t border-border/70 pt-12 text-center">
           <p className="text-sm text-muted">Quer conhecer outros projetos?</p>
           <Link
             href="/"

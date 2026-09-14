@@ -61,3 +61,24 @@ details.timeline-detail summary {
 details.timeline-detail summary::-webkit-details-marker {
   display: none;
 }
+
+/* Impressão da proposta do AWP (escopado com .awp-page para nao afetar
+   o restante do portfolio): esconde nav fixa e CTAs, evita cortar
+   secoes no meio de uma quebra de pagina. */
+@media print {
+  .awp-page .no-print {
+    display: none !important;
+  }
+
+  .awp-page {
+    background: #ffffff !important;
+  }
+
+  .awp-page section {
+    break-inside: avoid;
+  }
+
+  .awp-page header {
+    position: static !important;
+  }
+}
