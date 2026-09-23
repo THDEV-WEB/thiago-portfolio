@@ -18,10 +18,22 @@ export type PaasTierRow = {
   note: string;
 };
 
-export const pageMeta = {
-  title: "AWP — Nota interna (Vercel + Supabase)",
-  description: "Comparativo de custo Vercel+Supabase (PaaS) contra a proposta AWS/GCP do AWP — nota privada, não enviada ao cliente.",
+export const clientPageMeta = {
+  title: "AWP — Alternativa Vercel + Supabase",
+  description: "Comparativo de custo Vercel+Supabase (PaaS) como opção complementar à proposta AWS/GCP do AWP para a fase inicial do MVP1.",
 };
+
+export const clientIntro =
+  "Ao lado da proposta AWS/GCP já compartilhada, preparei também esta alternativa gerenciada (PaaS) — Vercel + Supabase — pensada especificamente para a fase inicial do MVP1. Segue o mesmo princípio da proposta original: valores calculados componente por componente, a partir de tarifas oficiais publicadas pelos dois provedores.";
+
+export const clientMissingTitle = "O que este comparativo ainda não inclui";
+
+export const beforeDecidingTitle = "Antes de decidir";
+export const beforeDecidingPoints = [
+  "Essa alternativa não substitui o orçamento AWS/GCP já enviado — é uma opção complementar para a fase inicial do MVP1.",
+  "Vale confirmarmos se AWS/GCP é uma exigência do cliente final do AWP, ou se foi apenas o ponto de partida da estimativa original — isso muda se essa via faz sentido.",
+  "Fico à disposição pra detalhar qualquer ponto, ou seguir com essa opção se fizer sentido pro momento do projeto.",
+];
 
 export const generatedAt = "22 de setembro de 2026";
 export const exchangeRateNote = "Câmbio: PTAX venda R$ 5,0918 (11/09/2026), reaproveitada do documento oficial.";
@@ -82,12 +94,6 @@ export const missingPoints = [
   "Custo variável do Vercel (Functions/CPU) não entra — é cobrado por uso real, e não há tráfego medido do AWP pra calcular isso sem inventar dado.",
   "Alta disponibilidade (equivalente aos Cenários B/C) não foi precificada aqui.",
   "Backup de 18 meses não existe em nenhum plano Supabase — o máximo é 28 dias (add-on Enterprise, ≈US$400/mês). Se o cliente confirmar essa exigência, isso sozinho derruba essa alternativa.",
-];
-
-export const talkingPoints = [
-  "Pergunte se AWS/GCP é exigência do cliente final ou só o ponto de partida da estimativa dele.",
-  "Apresente como opção de fase futura — nunca como substituição do que já foi enviado.",
-  "Leve você mesmo a lacuna dos 18 meses de backup, antes que ele encontre.",
 ];
 
 export const methodologyRules = [

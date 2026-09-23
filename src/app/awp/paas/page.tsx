@@ -1,5 +1,10 @@
 import type { Metadata } from "next";
 import {
+  beforeDecidingPoints,
+  beforeDecidingTitle,
+  clientIntro,
+  clientMissingTitle,
+  clientPageMeta,
   exchangeRateNote,
   generatedAt,
   leadEnd,
@@ -9,15 +14,13 @@ import {
   leadMid,
   methodologyRules,
   missingPoints,
-  pageMeta,
   sources,
-  talkingPoints,
   tiers,
 } from "@/lib/awp-paas-content";
 
 export const metadata: Metadata = {
-  title: { absolute: pageMeta.title },
-  description: pageMeta.description,
+  title: { absolute: clientPageMeta.title },
+  description: clientPageMeta.description,
   robots: { index: false, follow: false },
 };
 
@@ -46,16 +49,13 @@ export default function AwpPaasPage() {
   return (
     <div className="min-h-screen bg-background text-foreground">
       <div className="mx-auto max-w-2xl px-6 py-14 sm:py-16">
-        <span className="inline-flex items-center rounded-md border border-amber-300 bg-amber-50 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-amber-900">
-          Uso interno — não enviado ao Cadenê
-        </span>
-
-        <h1 className="mt-4 text-3xl font-bold tracking-tight text-foreground sm:text-[34px]">
-          Piso de custo: Vercel + Supabase
-        </h1>
-        <p className="mt-3 max-w-xl text-base text-muted">
-          Versão compacta — só o essencial pra ter na manga na conversa com o Cadenê.
+        <p className="text-sm font-semibold uppercase tracking-widest text-primary">
+          Agricultural Wealth Project
         </p>
+        <h1 className="mt-4 text-3xl font-bold tracking-tight text-foreground sm:text-[34px]">
+          Alternativa: Vercel + Supabase
+        </h1>
+        <p className="mt-3 max-w-xl text-base text-muted">{clientIntro}</p>
         <div className="mt-4 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted">
           <span>
             Gerado <span className="font-medium text-foreground">{generatedAt}</span>
@@ -120,16 +120,16 @@ export default function AwpPaasPage() {
         </section>
 
         <section className="mt-10">
-          <Callout tone="warning" title="Isso é só o piso — 3 coisas que faltam" items={missingPoints} />
+          <Callout tone="warning" title={clientMissingTitle} items={missingPoints} />
         </section>
 
         <section className="mt-6">
           <div className="rounded-2xl border border-border bg-surface p-5 text-sm leading-relaxed">
             <p className="text-xs font-semibold uppercase tracking-wide text-foreground">
-              Se for levantar com o Cadenê
+              {beforeDecidingTitle}
             </p>
             <ul className="mt-3 space-y-2">
-              {talkingPoints.map((item) => (
+              {beforeDecidingPoints.map((item) => (
                 <li key={item} className="flex gap-2 text-muted">
                   <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-primary" />
                   <span>{item}</span>
@@ -167,7 +167,7 @@ export default function AwpPaasPage() {
         </details>
 
         <p className="mt-10 text-xs text-muted">
-          Documento privado — não faz parte da proposta AWP entregue ao cliente.
+          Documento complementar à proposta AWP — Estimativa de Infraestrutura (MVP1).
         </p>
       </div>
     </div>
