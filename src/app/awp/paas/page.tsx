@@ -22,6 +22,17 @@ export const metadata: Metadata = {
   title: { absolute: clientPageMeta.title },
   description: clientPageMeta.description,
   robots: { index: false, follow: false },
+  openGraph: {
+    title: clientPageMeta.title,
+    description: clientPageMeta.description,
+    type: "website",
+    siteName: "AWP",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: clientPageMeta.title,
+    description: clientPageMeta.description,
+  },
 };
 
 function Callout({ tone, title, items }: { tone: "warning" | "info"; title: string; items: string[] }) {
