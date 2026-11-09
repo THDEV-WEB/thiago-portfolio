@@ -4,9 +4,15 @@
 //
 //   AWP_SMOKE_URL=http://localhost:3100 AWP_ACCESS_CODE=... AWP_ADMIN_PASSWORD=... \
 //     node scripts/awp-levantamento/smoke-test.mjs
+//
+// Preview protegida da Vercel: defina VERCEL_BYPASS_SECRET (Protection Bypass
+// for Automation) para enviar o cabeçalho x-vercel-protection-bypass.
 import { verifyExportFile } from "./lib.mjs";
 
 const base = (process.env.AWP_SMOKE_URL ?? "http://localhost:3100").replace(/\/$/, "");
+const bypass = process.env.VERCEL_BYPASS_SECRET
+  ? { "x-vercel-protection-bypass": process.env.VERCEL_BYPASS_SECRET }
+  : {};
 const code = process.env.AWP_ACCESS_CODE;
 const password = process.env.AWP_ADMIN_PASSWORD;
 if (!code || !password) {
@@ -35,6 +41,7 @@ async function call(method, url, { body, cookie, headers = {} } = {}) {
     method,
     redirect: "manual",
     headers: {
+      ...bypass,
       ...(body !== undefined ? { "Content-Type": "application/json" } : {}),
       ...(cookie ? { Cookie: cookie } : {}),
       ...headers,
