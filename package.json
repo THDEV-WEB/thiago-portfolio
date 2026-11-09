@@ -6,14 +6,24 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test:awp": "vitest run tests/awp-levantamento",
+    "awp:dev-db": "node scripts/awp-levantamento/dev-db.mjs",
+    "awp:db-setup": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/awp-levantamento/db-setup.mjs",
+    "awp:verify-export": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/awp-levantamento/verify-export.mjs",
+    "awp:restore-test": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/awp-levantamento/restore-test.mjs",
+    "awp:smoke-test": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/awp-levantamento/smoke-test.mjs"
   },
   "dependencies": {
+    "@react-pdf/renderer": "^4.9.0",
     "next": "16.3.3",
+    "postgres": "^4.1.0",
     "react": "19.2.8",
     "react-dom": "19.2.8"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "^0.5.16",
+    "@electric-sql/pglite-socket": "^0.2.19",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
@@ -21,6 +31,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.3.3",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^4.1.12"
   }
 }
