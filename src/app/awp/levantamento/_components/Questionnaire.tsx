@@ -75,6 +75,10 @@ export default function Questionnaire({ modules, participant, initialAnswers }: 
             <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${(answered / total) * 100}%` }} />
           </div>
         </div>
+        <p className="mt-3 text-sm leading-relaxed text-muted">
+          Alternativas com a etiqueta <span className="font-semibold uppercase tracking-wide">sugestão</span> foram
+          propostas por nós e precisam da sua confirmação. Se nenhuma servir, marque Outro e explique.
+        </p>
       </section>
 
       <nav aria-label="Módulos" className="-mx-4 mt-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">

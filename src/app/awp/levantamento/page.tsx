@@ -26,7 +26,8 @@ export default async function LevantamentoPage() {
   const answers = await answersOfParticipant(participant.id);
   return (
     <Questionnaire
-      modules={questionnaire}
+      // Notas internas dos módulos ficam só no painel e no PDF.
+      modules={questionnaire.map((m) => ({ ...m, internalNote: undefined }))}
       participant={{ id: participant.id, name: participant.declaredName, isAdmin: participant.kind === "admin" }}
       initialAnswers={Object.fromEntries(
         answers.map((a) => [a.questionKey, { value: a.value, updatedAt: a.updatedAt }]),
