@@ -67,7 +67,7 @@ export default function EntryForm() {
             value={name}
             onChange={(e) => setName(e.target.value)}
             className="mt-2 w-full rounded-xl border border-border bg-background px-4 py-3 text-base outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
-            placeholder="Ex.: Manoel Oliveira"
+            placeholder="Ex.: Manoel Oliveira ou Cadene"
           />
         </div>
         <div>
