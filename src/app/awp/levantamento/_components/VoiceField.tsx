@@ -3,9 +3,10 @@
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import {
   KEYBOARD_TIP,
+  NOTHING_RECOGNIZED,
   PRIVACY_NOTE,
   SPEECH_ERROR_MESSAGE,
-  isAndroid,
+  isMobile,
   speechRecognitionCtor,
   speechSupport,
   type SpeechRecognitionLike,
@@ -33,6 +34,8 @@ type Props = {
   value: string;
   onChange: (value: string) => void;
   onBlur?: () => void;
+  /** Eventos do reconhecimento, para a página de teste do microfone. */
+  onDebug?: (event: string) => void;
 };
 
 /**
@@ -40,7 +43,7 @@ type Props = {
  * revisão editável; só entra na resposta (e é salvo) quando a pessoa toca em
  * "Inserir na resposta".
  */
-export default function VoiceField({ id, label, help, placeholder, required, rows = 4, value, onChange, onBlur }: Props) {
+export default function VoiceField({ id, label, help, placeholder, required, rows = 4, value, onChange, onBlur, onDebug }: Props) {
   const support = useSpeechSupport();
   const [listening, setListening] = useState(false);
   const [draft, setDraft] = useState<string | null>(null);
@@ -67,8 +70,15 @@ export default function VoiceField({ id, label, help, placeholder, required, row
     rec.lang = "pt-BR";
     rec.interimResults = true;
     rec.maxAlternatives = 1;
-    // No Android o modo contínuo repete trechos; lá cada toque grava uma fala.
-    rec.continuous = !isAndroid();
+    // No celular o modo contínuo é instável (no Android repete trechos, no
+    // iPhone pode terminar sem resultado); lá cada toque grava uma fala.
+    rec.continuous = !isMobile();
+    let heard = false;
+    let failed = false;
+    rec.onstart = () => onDebug?.("start");
+    rec.onaudiostart = () => onDebug?.("audiostart");
+    rec.onspeechstart = () => onDebug?.("speechstart");
+    rec.onnomatch = () => onDebug?.("nomatch");
 
     const base = draftRef.current;
     rec.onresult = (event) => {
@@ -79,15 +89,21 @@ export default function VoiceField({ id, label, help, placeholder, required, row
         if (result.isFinal) finalText += result[0].transcript;
         else interimText += result[0].transcript;
       }
+      if (finalText || interimText) heard = true;
+      onDebug?.(`result (${(finalText + interimText).length} caracteres)`);
       updateDraft(joinText(base, finalText));
       interimRef.current = interimText;
       setInterim(interimText);
     };
     rec.onerror = (event) => {
+      onDebug?.(`error: ${event.error}`);
       if (event.error === "aborted") return;
+      failed = true;
       setError(SPEECH_ERROR_MESSAGE[event.error] ?? "Não foi possível usar o microfone agora. Você pode digitar normalmente.");
     };
     rec.onend = () => {
+      onDebug?.("end");
+      if (!heard && !failed && activeRecognizer === rec) setError(NOTHING_RECOGNIZED);
       if (interimRef.current) updateDraft(joinText(draftRef.current, interimRef.current));
       interimRef.current = "";
       setInterim("");
@@ -102,7 +118,8 @@ export default function VoiceField({ id, label, help, placeholder, required, row
       activeRecognizer = rec;
       setListening(true);
       if (draftRef.current === "") setDraft("");
-    } catch {
+    } catch (e) {
+      onDebug?.(`start falhou: ${e instanceof Error ? e.message : String(e)}`);
       setError("Não foi possível iniciar o microfone. Você pode digitar normalmente.");
     }
   }
@@ -154,7 +171,7 @@ export default function VoiceField({ id, label, help, placeholder, required, row
             type="button"
             onClick={listening ? stop : start}
             aria-pressed={listening}
-            className={`inline-flex min-h-11 items-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold transition-colors ${
+            className={`inline-flex min-h-11 touch-manipulation select-none items-center gap-2 rounded-full [-webkit-touch-callout:none] border px-4 py-2 text-sm font-semibold transition-colors ${
               listening
                 ? "border-red-300 bg-red-50 text-red-700"
                 : "border-primary/30 bg-primary/5 text-primary hover:bg-primary/10"
@@ -163,8 +180,11 @@ export default function VoiceField({ id, label, help, placeholder, required, row
             <MicIcon />
             {listening ? "Ouvindo… toque para parar" : draft !== null ? "Falar mais" : "Responder falando"}
           </button>
-          {listening && isAndroid() && (
-            <p className="mt-1 text-xs text-muted">A gravação para sozinha após uma pausa. Toque de novo para continuar.</p>
+          {listening && isMobile() && (
+            <p className="mt-1 text-xs text-muted">Fale agora. A gravação para sozinha após uma pausa; toque de novo para continuar.</p>
+          )}
+          {!listening && isMobile() && (
+            <p className="mt-1 text-xs text-muted">Toque uma vez e fale (não precisa segurar o botão).</p>
           )}
         </div>
       )}

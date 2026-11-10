@@ -24,6 +24,9 @@ export type SpeechRecognitionLike = {
   onerror: ((event: { error: string }) => void) | null;
   onend: (() => void) | null;
   onstart: (() => void) | null;
+  onaudiostart?: (() => void) | null;
+  onspeechstart?: (() => void) | null;
+  onnomatch?: (() => void) | null;
 };
 
 type SpeechRecognitionCtor = new () => SpeechRecognitionLike;
@@ -39,6 +42,17 @@ export function speechRecognitionCtor(): SpeechRecognitionCtor | null {
 
 export function isAndroid(): boolean {
   return typeof navigator !== "undefined" && /Android/i.test(navigator.userAgent);
+}
+
+/** iPhone/iPad (o iPad recente se apresenta como Mac com tela de toque). */
+export function isIOS(): boolean {
+  if (typeof navigator === "undefined") return false;
+  return /iPhone|iPad|iPod/i.test(navigator.userAgent) || (/Macintosh/.test(navigator.userAgent) && navigator.maxTouchPoints > 1);
+}
+
+/** Celular: o modo contínuo do reconhecimento é instável, cada toque grava uma fala. */
+export function isMobile(): boolean {
+  return isAndroid() || isIOS();
 }
 
 /** Navegador interno de outro app (onde o microfone costuma não funcionar). */
@@ -58,12 +72,16 @@ export function speechSupport(): SpeechSupport {
 
 export const SPEECH_ERROR_MESSAGE: Record<string, string> = {
   "not-allowed": "O microfone foi bloqueado. Libere a permissão do microfone nas configurações do navegador.",
-  "service-not-allowed": "O navegador não permitiu o reconhecimento de voz. Use o microfone do teclado.",
+  "service-not-allowed":
+    "O navegador não permitiu o reconhecimento de voz. No iPhone, ative Ajustes → Siri (ou Ditado). Enquanto isso, use o microfone do teclado.",
   "no-speech": "Não ouvi nada. Toque no microfone e fale de novo.",
   "audio-capture": "Nenhum microfone encontrado neste aparelho.",
   network: "Sem internet: o reconhecimento de voz precisa de conexão.",
   "language-not-supported": "O reconhecimento em português não está disponível neste navegador.",
 };
+
+export const NOTHING_RECOGNIZED =
+  "Não reconheci nenhuma fala. Toque uma vez em “Responder falando”, espere o botão ficar vermelho e fale. Se continuar sem funcionar, use o microfone do teclado.";
 
 export const PRIVACY_NOTE =
   "Ao usar o microfone, o áudio é enviado ao serviço de reconhecimento do navegador (Google no Chrome, Microsoft no Edge, Apple no Safari) para virar texto. O áudio não é gravado pela ferramenta: só o texto que você revisar é salvo.";
