@@ -1,9 +1,12 @@
 import { connection } from "next/server";
 import { questionnaire } from "./_content/questionario";
-import { answersOfParticipant } from "./_lib/data";
+import { answersOfParticipant, getPhase, reviewResponsesOf } from "./_lib/data";
+import { loadSharedAnswers } from "./_lib/review-data";
 import { currentParticipant } from "./_lib/session";
 import EntryForm from "./_components/EntryForm";
 import Questionnaire from "./_components/Questionnaire";
+import Review from "./_components/Review";
+import ReviewUnavailable from "./_components/ReviewUnavailable";
 
 export default async function LevantamentoPage() {
   // Sempre renderizada por requisição (cookie do participante, variáveis de
@@ -23,7 +26,23 @@ export default async function LevantamentoPage() {
   if (!participant) return <EntryForm />;
 
   // Só as respostas do próprio participante saem do servidor.
-  const answers = await answersOfParticipant(participant.id);
+  const [answers, phase] = await Promise.all([answersOfParticipant(participant.id), getPhase()]);
+
+  if (phase !== "questionario") {
+    // Revisão: só para quem respondeu identificado como Manoel ou Cadene.
+    const slot = participant.kind === "participant" ? participant.slot : null;
+    if (!slot || answers.length === 0) return <ReviewUnavailable name={participant.declaredName} />;
+    const [shared, reviews] = await Promise.all([loadSharedAnswers(), reviewResponsesOf(participant.id)]);
+    return (
+      <Review
+        participant={{ id: participant.id, name: participant.declaredName, slot }}
+        shared={shared}
+        initial={Object.fromEntries(reviews.map((r) => [r.itemKey, { value: r.value, updatedAt: r.updatedAt }]))}
+        closed={phase === "encerrado"}
+      />
+    );
+  }
+
   return (
     <Questionnaire
       // Notas internas dos módulos ficam só no painel e no PDF.

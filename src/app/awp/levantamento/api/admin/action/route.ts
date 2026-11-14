@@ -1,7 +1,8 @@
 import { questionByKey } from "../../../_content/questionario";
-import { addNote, addRuleVersion, setParticipantSlot, setValidation } from "../../../_lib/data";
+import { addNote, addRuleVersion, setParticipantSlot, setPhase, setValidation } from "../../../_lib/data";
 import { VALIDATION_LABEL, type Slot, type ValidationStatus } from "../../../_lib/divergence";
 import { fail, isSameOrigin, json, readJson } from "../../../_lib/http";
+import { PHASES, type Phase } from "../../../_lib/review";
 import { isAdmin } from "../../../_lib/session";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -42,6 +43,20 @@ export async function POST(request: Request) {
       if (!questionByKey.has(questionKey)) return fail("Pergunta desconhecida.", 400);
       if (!text) return fail("Escreva o texto da regra.", 400);
       await addRuleVersion(questionKey, text);
+      return json({ ok: true });
+    }
+    case "confirm_rule": {
+      // Nova versão da regra (texto revisado pelo administrador) + situação confirmada.
+      if (!questionByKey.has(questionKey)) return fail("Pergunta desconhecida.", 400);
+      if (!text) return fail("Escreva o texto da regra.", 400);
+      await addRuleVersion(questionKey, text);
+      await setValidation(questionKey, "confirmada");
+      return json({ ok: true });
+    }
+    case "phase": {
+      const phase = body.phase;
+      if (typeof phase !== "string" || !PHASES.includes(phase as Phase)) return fail("Fase inválida.", 400);
+      await setPhase(phase as Phase);
       return json({ ok: true });
     }
     case "slot": {

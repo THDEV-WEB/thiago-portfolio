@@ -17,28 +17,13 @@ import {
 } from "../_lib/divergence";
 import { formatDateTime } from "../_lib/format";
 import { otherAnswerTitle, type Report, type ReportAnswer, type ReportQuestion } from "../_lib/report";
-import { BASE_PATH_CLIENT } from "../_components/client-storage";
-
-const API = `${BASE_PATH_CLIENT}/api/admin`;
-
-async function action(payload: Record<string, unknown>): Promise<string | null> {
-  try {
-    const res = await fetch(`${API}/action`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
-    if (res.ok) return null;
-    const data = (await res.json().catch(() => ({}))) as { error?: string };
-    return data.error ?? "Não foi possível salvar.";
-  } catch {
-    return "Sem conexão.";
-  }
-}
+import type { ReviewReport } from "../_lib/review";
+import { ADMIN_API as API, adminAction as action } from "./admin-action";
+import ReviewAdmin from "./ReviewAdmin";
 
 type View = "comparar" | Slot;
 
-export default function AdminDashboard({ report }: { report: Report }) {
+export default function AdminDashboard({ report, review }: { report: Report; review: ReviewReport }) {
   const router = useRouter();
   const [moduleKey, setModuleKey] = useState("");
   const [validation, setValidation] = useState<"" | ValidationStatus>("");
@@ -92,6 +77,8 @@ export default function AdminDashboard({ report }: { report: Report }) {
         <Stat label="Possíveis divergências" value={String(t.possibleDivergences)} />
         <Stat label="Regras confirmadas" value={`${t.validation.confirmada}/${t.questions}`} />
       </section>
+
+      <ReviewAdmin review={review} report={report} onChanged={() => router.refresh()} />
 
       <ParticipantsTable report={report} onChanged={() => router.refresh()} />
 

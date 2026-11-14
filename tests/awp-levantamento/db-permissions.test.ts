@@ -120,11 +120,99 @@ describe("isolamento de outros papéis", () => {
     ).rejects.toThrow(/permission denied/);
   });
 
+  it.each(["anon", "authenticated", "awp_restore"])("%s não lê a revisão nem grava nela", async (role) => {
+    await expect(asRole(t.sql, role, (tx) => tx.unsafe(`select * from awp.review_responses`))).rejects.toThrow(
+      /permission denied/,
+    );
+    await expect(
+      asRole(t.sql, role, (tx) => tx.unsafe(`select awp.save_review('hash-manoel', 'final.mais', '{}'::jsonb)`)),
+    ).rejects.toThrow(/permission denied/);
+  });
+
   it("awp_restore não consegue apagar o schema awp", async () => {
     await expect(asRole(t.sql, "awp_restore", (tx) => tx.unsafe(`drop schema awp cascade`))).rejects.toThrow(
       /must be owner|permission denied/,
     );
     const [row] = await t.sql`select count(*)::int as n from awp.questions`;
     expect(row.n).toBe(36);
+  });
+});
+
+describe("revisão (segunda rodada)", () => {
+  const review = (tx: { unsafe: TestDb["sql"]["unsafe"] }, token: string, key: string, payload: object) =>
+    tx.unsafe(`select awp.save_review($1::text, $2::text, $3::jsonb) as r`, [token, key, payload]);
+  const setPhase = (phase: string) =>
+    asRole(t.sql, "awp_app", (tx) =>
+      tx.unsafe(
+        `insert into awp.app_settings (key, value) values ('phase', $1)
+         on conflict (key) do update set value = excluded.value, updated_at = now()`,
+        [phase],
+      ),
+    );
+
+  it("fora da fase de revisão, o banco recusa gravar a revisão", async () => {
+    await expect(
+      asRole(t.sql, "awp_app", (tx) => review(tx, "hash-manoel", "entendimento.1.2", { choice: "certo" })),
+    ).rejects.toThrow(/revisao_fechada/);
+  });
+
+  it("na revisão, o questionário fica só leitura e a revisão grava pelo token", async () => {
+    await setPhase("revisao");
+    await expect(
+      asRole(t.sql, "awp_app", (tx) => save(tx, "hash-manoel", "m1.q1", { selected: ["safra"] })),
+    ).rejects.toThrow(/questionario_fechado/);
+    await asRole(t.sql, "awp_app", (tx) =>
+      review(tx, "hash-manoel", "entendimento.1.2", { choice: "certo", comment: "Isso mesmo" }),
+    );
+    const [row] = await t.sql`select choice, comment from awp.review_responses where participant_id = ${manoel}::uuid`;
+    expect(row).toEqual({ choice: "certo", comment: "Isso mesmo" });
+  });
+
+  it("só quem respondeu o questionário pode revisar, e nunca sem token válido", async () => {
+    // O Cadene deste banco não respondeu nada.
+    await expect(
+      asRole(t.sql, "awp_app", (tx) => review(tx, "hash-cadene", "entendimento.1.2", { choice: "certo" })),
+    ).rejects.toThrow(/revisao_indisponivel/);
+    await expect(
+      asRole(t.sql, "awp_app", (tx) => review(tx, "token-inexistente", "entendimento.1.2", { choice: "certo" })),
+    ).rejects.toThrow(/participante_invalido/);
+  });
+
+  it("recusa chave de item fora do formato e resposta nova que não seja objeto", async () => {
+    await expect(
+      asRole(t.sql, "awp_app", (tx) => review(tx, "hash-manoel", "X; drop", { choice: "certo" })),
+    ).rejects.toThrow(/review_responses_item_key_check|violates check/);
+    await expect(
+      asRole(t.sql, "awp_app", (tx) => review(tx, "hash-manoel", "alinhar.2.4", { choice: "responder", answer: [1] })),
+    ).rejects.toThrow(/formato_invalido/);
+  });
+
+  it("nova sessão de edição guarda o estado anterior da revisão", async () => {
+    await t.sql`update awp.review_responses set updated_at = now() - interval '10 minutes' where item_key = 'entendimento.1.2'`;
+    await asRole(t.sql, "awp_app", (tx) =>
+      review(tx, "hash-manoel", "entendimento.1.2", { choice: "nao", comment: "Pensando melhor, depende" }),
+    );
+    const revs = await t.sql`select snapshot from awp.review_revisions where item_key = 'entendimento.1.2'`;
+    expect(revs).toHaveLength(1);
+    expect(revs[0].snapshot.choice).toBe("certo");
+  });
+
+  it("awp_app não grava, altera nem apaga a revisão diretamente", async () => {
+    await expect(
+      asRole(t.sql, "awp_app", (tx) =>
+        tx.unsafe(`insert into awp.review_responses (participant_id, item_key) values ('${manoel}', 'final.mais')`),
+      ),
+    ).rejects.toThrow(/permission denied/);
+    await expect(
+      asRole(t.sql, "awp_app", (tx) => tx.unsafe(`update awp.review_responses set comment = 'adulterado'`)),
+    ).rejects.toThrow(/permission denied/);
+    await expect(asRole(t.sql, "awp_app", (tx) => tx.unsafe(`delete from awp.review_revisions`))).rejects.toThrow(
+      /permission denied/,
+    );
+  });
+
+  it("fase desconhecida é recusada pelo banco", async () => {
+    await expect(setPhase("qualquer")).rejects.toThrow(/app_settings_check|violates check/);
+    await setPhase("questionario");
   });
 });

@@ -125,3 +125,40 @@ create table if not exists __SCHEMA__.access_attempts (
 
 create index if not exists access_attempts_lookup_idx
   on __SCHEMA__.access_attempts (scope, ip_hash, created_at);
+
+-- Configurações da ferramenta. "phase": questionario (respostas abertas),
+-- revisao (questionário só leitura, revisão aberta) ou encerrado (tudo só leitura).
+create table if not exists __SCHEMA__.app_settings (
+  key        text primary key check (key in ('phase')),
+  value      text not null check (key <> 'phase' or value in ('questionario', 'revisao', 'encerrado')),
+  updated_at timestamptz not null default now()
+);
+
+-- Revisão (segunda rodada): resposta de cada participante a cada item de
+-- _content/revisao.ts. Não altera as respostas originais do questionário.
+-- answer = nova resposta no formato do questionário ("Responder de novo").
+create table if not exists __SCHEMA__.review_responses (
+  id             uuid primary key default gen_random_uuid(),
+  participant_id uuid not null references __SCHEMA__.participants(id),
+  item_key       text not null check (item_key ~ '^[a-z][a-z0-9_.-]{0,59}$'),
+  choice         text not null default '' check (length(choice) <= 40),
+  comment        text not null default '',
+  answer         jsonb not null default '{}',
+  created_at     timestamptz not null default now(),
+  updated_at     timestamptz not null default now(),
+  unique (participant_id, item_key)
+);
+
+-- Histórico da revisão: estado anterior, gravado ao iniciar uma nova sessão
+-- de edição (mais de 5 min desde a última gravação). Somente inserção.
+create table if not exists __SCHEMA__.review_revisions (
+  id                 uuid primary key default gen_random_uuid(),
+  review_response_id uuid not null references __SCHEMA__.review_responses(id),
+  participant_id     uuid not null references __SCHEMA__.participants(id),
+  item_key           text not null,
+  snapshot           jsonb not null,
+  recorded_at        timestamptz not null default now()
+);
+
+create index if not exists review_revisions_response_idx
+  on __SCHEMA__.review_revisions (review_response_id, recorded_at);

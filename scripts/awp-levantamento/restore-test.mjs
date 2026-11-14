@@ -20,11 +20,11 @@ import postgres from "postgres";
 import {
   canonicalJson,
   collectExportData,
-  EXPORT_TABLES,
   MAIN_SCHEMA,
   requireEnv,
   RESTORE_SCHEMA,
   sha256,
+  tablesForVersion,
   tablesSql,
   verifyExportFile,
 } from "./lib.mjs";
@@ -45,6 +45,8 @@ if (!check.ok) {
   for (const p of check.problems) console.error(`  - ${p}`);
   process.exit(2);
 }
+// Arquivos de versões anteriores do formato trazem menos tabelas.
+const tables = tablesForVersion(file.format_version);
 
 const sql = postgres(requireEnv("AWP_RESTORE_DATABASE_URL"), {
   prepare: false,
@@ -72,7 +74,7 @@ try {
     await tx.unsafe(`drop schema if exists ${RESTORE_SCHEMA} cascade`);
     await tx.unsafe(tablesSql(RESTORE_SCHEMA));
 
-    for (const table of EXPORT_TABLES) {
+    for (const table of tables) {
       const rows = file.data[table.name];
       if (rows.length === 0) continue;
       await tx.unsafe(
@@ -82,9 +84,9 @@ try {
       );
     }
 
-    const restored = await collectExportData(tx, RESTORE_SCHEMA);
+    const restored = await collectExportData(tx, RESTORE_SCHEMA, tables);
     const restoredHash = sha256(canonicalJson(restored));
-    const counts = EXPORT_TABLES.map((t) => ({
+    const counts = tables.map((t) => ({
       table: t.name,
       original: file.counts[t.name],
       restored: restored[t.name].length,

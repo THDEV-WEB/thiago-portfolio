@@ -5,6 +5,9 @@
 //   node scripts/awp-levantamento/dev-db.mjs
 //   AWP_ADMIN_DATABASE_URL=postgres://postgres@127.0.0.1:55432/postgres
 //
+//   AWP_DB_POOL_MAX=1 no app local: o PGlite atende todas as conexões numa
+//   sessão só, e consultas paralelas de conexões diferentes se misturam.
+//
 // Observação: o PGlite não autentica por usuário, então o app local conecta
 // como dono do banco. As permissões de awp_app são verificadas nos testes
 // (tests/awp-levantamento), que trocam de papel explicitamente.

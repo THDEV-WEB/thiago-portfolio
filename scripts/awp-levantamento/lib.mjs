@@ -11,6 +11,7 @@ export {
   collectExportData,
   EXPORT_TABLES,
   sha256,
+  tablesForVersion,
   verifyExportFile,
 } from "../../src/app/awp/levantamento/_lib/export-spec.ts";
 

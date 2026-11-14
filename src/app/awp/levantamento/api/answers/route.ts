@@ -1,6 +1,6 @@
 import { questionByKey } from "../../_content/questionario";
 import { normalizeAnswer } from "../../_lib/answers";
-import { saveAnswer } from "../../_lib/data";
+import { getPhase, saveAnswer } from "../../_lib/data";
 import { fail, isSameOrigin, json, readJson } from "../../_lib/http";
 import { currentParticipant } from "../../_lib/session";
 
@@ -11,6 +11,9 @@ export async function POST(request: Request) {
 
   const participant = await currentParticipant();
   if (!participant) return fail("Sessão do participante não encontrada. Informe seu nome de novo.", 401);
+  if ((await getPhase()) !== "questionario") {
+    return fail("O questionário está só para leitura durante a revisão. Recarregue a página.", 409);
+  }
 
   let body: { items?: unknown };
   try {
@@ -27,8 +30,15 @@ export async function POST(request: Request) {
     const question = typeof item?.questionKey === "string" ? questionByKey.get(item.questionKey) : undefined;
     if (!question) return fail("Pergunta desconhecida.", 400);
     const value = normalizeAnswer(question, item.answer);
-    const result = await saveAnswer(participant.tokenHash, question.key, value);
-    saved[question.key] = result.updatedAt;
+    try {
+      const result = await saveAnswer(participant.tokenHash, question.key, value);
+      saved[question.key] = result.updatedAt;
+    } catch (e) {
+      if (/questionario_fechado/.test(String(e))) {
+        return fail("O questionário está só para leitura durante a revisão. Recarregue a página.", 409);
+      }
+      throw e;
+    }
   }
 
   return json({ ok: true, saved });

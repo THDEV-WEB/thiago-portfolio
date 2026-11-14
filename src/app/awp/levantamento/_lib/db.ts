@@ -15,7 +15,9 @@ export function db(): postgres.Sql {
     if (!url) throw new Error("AWP_DATABASE_URL não configurada.");
     globalForDb.awpLevantamentoSql = postgres(url, {
       prepare: false,
-      max: 3,
+      // Banco local (PGlite) tem uma sessão só para todas as conexões: lá use
+      // AWP_DB_POOL_MAX=1 para as consultas paralelas não se misturarem.
+      max: Number(process.env.AWP_DB_POOL_MAX) || 3,
       max_pipeline: 1,
       idle_timeout: 20,
       connect_timeout: 10,

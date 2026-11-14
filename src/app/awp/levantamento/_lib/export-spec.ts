@@ -22,24 +22,38 @@ export function sha256(text: string): string {
 }
 
 export const EXPORT_FORMAT = "awp-levantamento-export";
-export const EXPORT_FORMAT_VERSION = 1;
+/** Versão 2: inclui a fase da ferramenta e a revisão (segunda rodada). */
+export const EXPORT_FORMAT_VERSION = 2;
+export const SUPPORTED_FORMAT_VERSIONS = [1, 2];
 
-/** Tabelas exportadas, na ordem em que podem ser restauradas (chaves estrangeiras). */
+/**
+ * Tabelas exportadas, na ordem em que podem ser restauradas (chaves
+ * estrangeiras). `since` = primeira versão do formato que traz a tabela.
+ */
 export const EXPORT_TABLES = [
-  { name: "modules", orderBy: "key" },
-  { name: "questions", orderBy: "key" },
-  { name: "question_options", orderBy: "question_key, role, key" },
-  { name: "participants", orderBy: "id" },
-  { name: "answers", orderBy: "id" },
-  { name: "answer_revisions", orderBy: "id" },
-  { name: "question_validation", orderBy: "question_key" },
-  { name: "validation_events", orderBy: "id" },
-  { name: "admin_notes", orderBy: "id" },
-  { name: "rule_consolidations", orderBy: "id" },
+  { name: "modules", orderBy: "key", since: 1 },
+  { name: "questions", orderBy: "key", since: 1 },
+  { name: "question_options", orderBy: "question_key, role, key", since: 1 },
+  { name: "participants", orderBy: "id", since: 1 },
+  { name: "answers", orderBy: "id", since: 1 },
+  { name: "answer_revisions", orderBy: "id", since: 1 },
+  { name: "question_validation", orderBy: "question_key", since: 1 },
+  { name: "validation_events", orderBy: "id", since: 1 },
+  { name: "admin_notes", orderBy: "id", since: 1 },
+  { name: "rule_consolidations", orderBy: "id", since: 1 },
+  { name: "app_settings", orderBy: "key", since: 2 },
+  { name: "review_responses", orderBy: "id", since: 2 },
+  { name: "review_revisions", orderBy: "id", since: 2 },
 ] as const;
 
 export type ExportTableName = (typeof EXPORT_TABLES)[number]["name"];
+export type ExportTable = (typeof EXPORT_TABLES)[number];
 export type ExportData = Record<ExportTableName, Record<string, unknown>[]>;
+
+/** Tabelas presentes num arquivo da versão indicada do formato. */
+export function tablesForVersion(version: number): ExportTable[] {
+  return EXPORT_TABLES.filter((t) => t.since <= version);
+}
 
 export type ExportFile = {
   format: typeof EXPORT_FORMAT;
@@ -62,10 +76,14 @@ export type UnsafeQuery = {
  * transação com `set local timezone = 'UTC'` para que as datas saiam sempre
  * no mesmo formato (e o SHA-256 seja reproduzível).
  */
-export async function collectExportData(sql: UnsafeQuery, schema: string): Promise<ExportData> {
+export async function collectExportData(
+  sql: UnsafeQuery,
+  schema: string,
+  tables: readonly ExportTable[] = EXPORT_TABLES,
+): Promise<ExportData> {
   if (!/^[a-z_]+$/.test(schema)) throw new Error(`Schema inválido: ${schema}`);
   const data = {} as ExportData;
-  for (const table of EXPORT_TABLES) {
+  for (const table of tables) {
     const rows = await sql.unsafe(
       `select coalesce(jsonb_agg(to_jsonb(t) order by ${table.orderBy}), '[]'::jsonb) as rows
        from ${schema}.${table.name} t`,
@@ -102,14 +120,16 @@ export function verifyExportFile(file: unknown): VerifyResult {
   const problems: string[] = [];
   const f = file as Partial<ExportFile> | null;
   if (!f || f.format !== EXPORT_FORMAT) problems.push("Formato desconhecido.");
-  if (f?.format_version !== EXPORT_FORMAT_VERSION) {
+  const version = Number(f?.format_version);
+  if (!SUPPORTED_FORMAT_VERSIONS.includes(version)) {
     problems.push(`Versão de formato inesperada: ${String(f?.format_version)}.`);
+    return { ok: false, problems };
   }
   if (!f?.data || typeof f.data !== "object") {
     problems.push("Arquivo sem dados.");
     return { ok: false, problems };
   }
-  for (const table of EXPORT_TABLES) {
+  for (const table of tablesForVersion(version)) {
     const rows = f.data[table.name];
     if (!Array.isArray(rows)) {
       problems.push(`Tabela ausente: ${table.name}.`);

@@ -11,10 +11,16 @@ import {
   addNote,
   addRuleVersion,
   answersOfParticipant,
+  getPhase,
   loadAdminData,
+  reviewResponsesOf,
   saveAnswer,
+  saveReview,
+  setPhase,
   setValidation,
 } from "../../src/app/awp/levantamento/_lib/data";
+import { buildReviewReport } from "../../src/app/awp/levantamento/_lib/review";
+import { loadSharedAnswers } from "../../src/app/awp/levantamento/_lib/review-data";
 import {
   buildExportFile,
   canonicalJson,
@@ -118,14 +124,73 @@ describe("camada de dados", () => {
   });
 });
 
+describe("revisão (segunda rodada)", () => {
+  it("fora da fase de revisão, não grava", async () => {
+    expect(await getPhase()).toBe("questionario");
+    await expect(saveReview("hash-m", "entendimento.1.2", { choice: "certo", comment: "", answer: null })).rejects.toThrow(
+      /revisao_fechada/,
+    );
+  });
+
+  it("na revisão, o questionário fica só leitura e cada um grava a própria revisão", async () => {
+    await setPhase("revisao");
+    expect(await getPhase()).toBe("revisao");
+    await expect(saveAnswer("hash-m", "m1.q1", answer({ selected: ["talhao"] }))).rejects.toThrow(/questionario_fechado/);
+
+    await saveReview("hash-m", "entendimento.1.2", { choice: "certo", comment: "", answer: null });
+    await saveReview("hash-c", "entendimento.1.2", { choice: "certo", comment: "", answer: null });
+    await saveReview("hash-m", "alinhar.1.1", { choice: "proposta", comment: "Concordo", answer: null });
+    await saveReview("hash-c", "alinhar.1.1", {
+      choice: "responder",
+      comment: "",
+      answer: answer({ selected: ["talhao", "safra"], explanation: "Talhão dentro da safra" }),
+    });
+
+    const mine = await reviewResponsesOf(manoel);
+    expect(mine.map((r) => r.itemKey).sort()).toEqual(["alinhar.1.1", "entendimento.1.2"]);
+    expect(JSON.stringify(mine)).not.toContain("Talhão dentro da safra");
+  });
+
+  it("só quem respondeu o questionário identificado pode revisar", async () => {
+    await asOwner(t.sql, () => createParticipant(t.sql, "Visitante", "hash-v", null));
+    await expect(saveReview("hash-v", "final.mais", { choice: "", comment: "oi", answer: null })).rejects.toThrow(
+      /revisao_indisponivel/,
+    );
+  });
+
+  it("a tela da revisão recebe só as respostas da primeira rodada, sem observações nem regras", async () => {
+    const shared = await loadSharedAnswers();
+    expect(shared["m1.q1"].manoel?.selected).toEqual(["talhao", "safra"]);
+    expect(shared["m1.q1"].cadene?.selected).toEqual(["talhao"]);
+    const text = JSON.stringify(shared);
+    expect(text).not.toContain("Confirmar com os dois na reunião");
+    expect(text).not.toContain("consolidado por safra");
+  });
+
+  it("o painel consolida a revisão por item", async () => {
+    const review = buildReviewReport(await loadAdminData());
+    expect(review.phase).toBe("revisao");
+    const byKey = new Map(review.items.map((r) => [r.item.key, r]));
+    expect(byKey.get("entendimento.1.2")?.status).toBe("concordam");
+    expect(byKey.get("alinhar.1.1")?.status).toBe("comparar");
+    expect(byKey.get("alinhar.2.4")?.status).toBe("aguardando");
+    expect(byKey.get("duvida.1.1")?.item.audience).toEqual(["cadene"]);
+    expect(review.progress.manoel).toEqual({ done: 2, total: 22 });
+    expect(review.progress.cadene).toEqual({ done: 2, total: 29 });
+  });
+});
+
 describe("exportação JSON", () => {
   it("é íntegra e acusa adulteração", async () => {
     const file = await exportNow();
     expect(verifyExportFile(file)).toEqual({ ok: true, problems: [] });
+    expect(file.format_version).toBe(2);
     expect(file.counts.questions).toBe(36);
     expect(file.counts.answers).toBe(5);
     expect(file.counts.answer_revisions).toBe(1);
     expect(file.counts.rule_consolidations).toBe(2);
+    expect(file.counts.review_responses).toBe(4);
+    expect(file.counts.app_settings).toBe(1);
 
     const tampered = structuredClone(file);
     (tampered.data.answers[0] as { explanation: string }).explanation = "alterado";
@@ -168,6 +233,31 @@ describe("restauração isolada (script real)", () => {
     expect(schema.n).toBe(0);
   });
 
+  it("aceita e restaura um arquivo da versão 1 do formato (primeira rodada)", async () => {
+    const file = await exportNow();
+    const v1 = structuredClone(file) as unknown as {
+      format_version: number;
+      sha256: string;
+      counts: Record<string, number>;
+      data: Record<string, unknown[]>;
+    };
+    for (const table of ["app_settings", "review_responses", "review_revisions"]) {
+      delete v1.data[table];
+      delete v1.counts[table];
+    }
+    v1.format_version = 1;
+    v1.sha256 = sha256(canonicalJson(v1.data));
+    expect(verifyExportFile(v1)).toEqual({ ok: true, problems: [] });
+
+    const path = join(dir, "export-v1.json");
+    writeFileSync(path, JSON.stringify(v1, null, 2));
+    const { stdout } = await asOwner(t.sql, () =>
+      run(process.execPath, [script, path], { env: { ...env(), AWP_RESTORE_SET_ROLE: "1" } }),
+    );
+    expect(stdout).toContain("RESTAURAÇÃO OK");
+    expect(stdout).not.toContain("review_responses");
+  });
+
   it("recusa rodar com uma conta que enxerga o schema awp", async () => {
     const path = join(dir, "export.json");
     // Sem trocar de papel: a conexão é a do dono do banco, que enxerga awp.
@@ -192,8 +282,9 @@ describe("restauração isolada (script real)", () => {
 });
 
 describe("PDF consolidado", () => {
-  it("gera um PDF válido com o conteúdo do levantamento", async () => {
-    const pdf = await renderReportPdf(buildReport(await loadAdminData()), new Date());
+  it("gera um PDF válido com o conteúdo do levantamento e a revisão", async () => {
+    const data = await loadAdminData();
+    const pdf = await renderReportPdf(buildReport(data), new Date(), buildReviewReport(data));
     expect(Buffer.from(pdf.subarray(0, 5)).toString()).toBe("%PDF-");
     expect(pdf.byteLength).toBeGreaterThan(5_000);
   });

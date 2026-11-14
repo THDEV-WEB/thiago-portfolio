@@ -3,6 +3,7 @@ import type postgres from "postgres";
 import { db } from "./db";
 import type { AnswerValue } from "./answers";
 import type { Slot, ValidationStatus } from "./divergence";
+import type { Phase, ReviewValue } from "./review";
 
 export type StoredAnswer = {
   id: string;
@@ -35,7 +36,76 @@ export type NoteRow = { id: string; questionKey: string; answerId: string | null
 export type RuleRow = { id: string; questionKey: string; version: number; body: string; createdAt: string };
 export type ValidationEventRow = { id: string; questionKey: string; status: ValidationStatus | null; createdAt: string };
 
+export type ReviewRow = {
+  id: string;
+  participantId: string;
+  itemKey: string;
+  value: ReviewValue;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type ReviewRevisionRow = { id: string; reviewResponseId: string; value: ReviewValue; validFrom: string; recordedAt: string };
+
 const iso = (d: unknown) => (d instanceof Date ? d.toISOString() : String(d));
+
+const PHASE_VALUES: Phase[] = ["questionario", "revisao", "encerrado"];
+
+function toReviewValue(row: Record<string, unknown>): ReviewValue {
+  const answer = row.answer as AnswerValue | Record<string, never> | null | undefined;
+  return {
+    choice: (row.choice as string) ?? "",
+    comment: (row.comment as string) ?? "",
+    answer: answer && Object.keys(answer).length > 0 ? (answer as AnswerValue) : null,
+  };
+}
+
+function toReviewRow(row: postgres.Row): ReviewRow {
+  return {
+    id: row.id,
+    participantId: row.participant_id,
+    itemKey: row.item_key,
+    value: toReviewValue(row),
+    createdAt: iso(row.created_at),
+    updatedAt: iso(row.updated_at),
+  };
+}
+
+/** Fase atual da ferramenta. Sem registro = questionário aberto. */
+export async function getPhase(): Promise<Phase> {
+  const [row] = await db()`select value from awp.app_settings where key = 'phase'`;
+  const value = row?.value as Phase | undefined;
+  return value && PHASE_VALUES.includes(value) ? value : "questionario";
+}
+
+export async function setPhase(phase: Phase) {
+  await db()`
+    insert into awp.app_settings (key, value) values ('phase', ${phase})
+    on conflict (key) do update set value = excluded.value, updated_at = now()
+  `;
+}
+
+/** Somente as respostas da revisão do participante indicado. */
+export async function reviewResponsesOf(participantId: string): Promise<ReviewRow[]> {
+  const rows = await db()`select * from awp.review_responses where participant_id = ${participantId}::uuid`;
+  return rows.map(toReviewRow);
+}
+
+export async function saveReview(tokenHash: string, itemKey: string, value: ReviewValue) {
+  const sql = db();
+  const payload = { choice: value.choice, comment: value.comment, answer: value.answer ?? {} };
+  const [row] = await sql`
+    select awp.save_review(
+      ${tokenHash}::text, ${itemKey}::text, ${sql.json(payload as unknown as postgres.JSONValue)}::jsonb
+    ) as result
+  `;
+  const result = (typeof row.result === "string" ? JSON.parse(row.result) : row.result) as {
+    id: string;
+    updated_at: string;
+    revision: boolean;
+  };
+  return { id: result.id, updatedAt: iso(result.updated_at), revision: result.revision };
+}
 
 function toAnswerValue(row: Record<string, unknown>): AnswerValue {
   return {
@@ -104,20 +174,39 @@ export type AdminData = {
   validationEvents: ValidationEventRow[];
   notes: NoteRow[];
   rules: RuleRow[];
+  phase: Phase;
+  reviews: ReviewRow[];
+  reviewRevisions: ReviewRevisionRow[];
 };
 
 export async function loadAdminData(): Promise<AdminData> {
   const sql = db();
-  const [participants, answers, revisions, validation, events, notes, rules] = await Promise.all([
-    sql`select * from awp.participants order by created_at`,
-    sql`select * from awp.answers order by updated_at`,
-    sql`select * from awp.answer_revisions order by recorded_at`,
-    sql`select * from awp.question_validation`,
-    sql`select * from awp.validation_events order by created_at`,
-    sql`select * from awp.admin_notes order by created_at`,
-    sql`select * from awp.rule_consolidations order by question_key, version`,
-  ]);
+  const [participants, answers, revisions, validation, events, notes, rules, reviews, reviewRevisions, phase] =
+    await Promise.all([
+      sql`select * from awp.participants order by created_at`,
+      sql`select * from awp.answers order by updated_at`,
+      sql`select * from awp.answer_revisions order by recorded_at`,
+      sql`select * from awp.question_validation`,
+      sql`select * from awp.validation_events order by created_at`,
+      sql`select * from awp.admin_notes order by created_at`,
+      sql`select * from awp.rule_consolidations order by question_key, version`,
+      sql`select * from awp.review_responses order by updated_at`,
+      sql`select * from awp.review_revisions order by recorded_at`,
+      getPhase(),
+    ]);
   return {
+    phase,
+    reviews: reviews.map(toReviewRow),
+    reviewRevisions: reviewRevisions.map((r) => {
+      const snapshot = (typeof r.snapshot === "string" ? JSON.parse(r.snapshot) : r.snapshot) as Record<string, unknown>;
+      return {
+        id: r.id,
+        reviewResponseId: r.review_response_id,
+        value: toReviewValue(snapshot),
+        validFrom: String(snapshot.updated_at ?? ""),
+        recordedAt: iso(r.recorded_at),
+      };
+    }),
     participants: participants.map((p) => ({
       id: p.id,
       declaredName: p.declared_name,

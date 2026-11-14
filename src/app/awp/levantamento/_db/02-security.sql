@@ -48,6 +48,9 @@ grant select on awp.answers, awp.answer_revisions to awp_app;
 grant select, insert, update, delete on awp.question_validation to awp_app;
 grant select, insert on awp.validation_events, awp.admin_notes, awp.rule_consolidations to awp_app;
 grant select, insert, delete on awp.access_attempts to awp_app;
+grant select, insert, update on awp.app_settings to awp_app;
+-- Revisão: só leitura direta. Gravação apenas por awp.save_review().
+grant select on awp.review_responses, awp.review_revisions to awp_app;
 
 -- RLS ligado em todas as tabelas. Só awp_app tem política; qualquer outro
 -- papel sem ser o dono não enxerga linha nenhuma.
@@ -58,7 +61,8 @@ begin
   foreach t in array array[
     'modules', 'questions', 'question_options', 'participants', 'answers',
     'answer_revisions', 'question_validation', 'validation_events',
-    'admin_notes', 'rule_consolidations', 'access_attempts'
+    'admin_notes', 'rule_consolidations', 'access_attempts', 'app_settings',
+    'review_responses', 'review_revisions'
   ] loop
     execute format('alter table awp.%I enable row level security', t);
     execute format('drop policy if exists awp_app_all on awp.%I', t);
@@ -100,6 +104,12 @@ begin
   select id into v_participant from awp.participants where token_hash = p_token_hash;
   if v_participant is null then
     raise exception 'participante_invalido';
+  end if;
+
+  -- Fora da fase de questionário (revisão ou encerrado), as respostas originais
+  -- ficam só para leitura.
+  if coalesce((select value from awp.app_settings where key = 'phase'), 'questionario') <> 'questionario' then
+    raise exception 'questionario_fechado';
   end if;
 
   if not exists (select 1 from awp.questions where key = p_question_key) then
@@ -187,6 +197,92 @@ $$;
 
 revoke all on function awp.save_answer(text, text, jsonb) from public;
 grant execute on function awp.save_answer(text, text, jsonb) to awp_app;
+
+-- Grava a resposta da revisão do participante dono do token. Só com a revisão
+-- aberta e só para quem respondeu o questionário identificado como Manoel ou
+-- Cadene. Itens e alternativas válidos são conferidos pela aplicação
+-- (_content/revisao.ts); aqui ficam formato, dono e fase.
+create or replace function awp.save_review(
+  p_token_hash text,
+  p_item_key   text,
+  p_payload    jsonb
+) returns jsonb
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_participant uuid;
+  v_old         awp.review_responses%rowtype;
+  v_id          uuid;
+  v_updated     timestamptz;
+  v_revision    boolean := false;
+  v_choice      text  := coalesce(p_payload ->> 'choice', '');
+  v_comment     text  := coalesce(p_payload ->> 'comment', '');
+  v_answer      jsonb := coalesce(p_payload -> 'answer', '{}'::jsonb);
+begin
+  select p.id into v_participant
+  from awp.participants p
+  where p.token_hash = p_token_hash;
+  if v_participant is null then
+    raise exception 'participante_invalido';
+  end if;
+
+  if coalesce((select value from awp.app_settings where key = 'phase'), 'questionario') <> 'revisao' then
+    raise exception 'revisao_fechada';
+  end if;
+
+  if not exists (
+    select 1 from awp.participants p
+    where p.id = v_participant and p.kind = 'participant' and p.slot is not null
+      and exists (select 1 from awp.answers a where a.participant_id = p.id)
+  ) then
+    raise exception 'revisao_indisponivel';
+  end if;
+
+  if jsonb_typeof(v_answer) <> 'object' or length(v_comment) > 10000 then
+    raise exception 'formato_invalido';
+  end if;
+
+  update awp.participants set last_seen_at = now() where id = v_participant;
+
+  insert into awp.review_responses as r (participant_id, item_key, choice, comment, answer)
+  values (v_participant, p_item_key, v_choice, v_comment, v_answer)
+  on conflict (participant_id, item_key) do nothing
+  returning r.id, r.updated_at into v_id, v_updated;
+
+  if v_id is not null then
+    return jsonb_build_object('id', v_id, 'updated_at', v_updated, 'revision', false);
+  end if;
+
+  select * into v_old from awp.review_responses
+  where participant_id = v_participant and item_key = p_item_key
+  for update;
+
+  if (v_old.choice, v_old.comment, v_old.answer) is not distinct from (v_choice, v_comment, v_answer) then
+    return jsonb_build_object('id', v_old.id, 'updated_at', v_old.updated_at, 'revision', false);
+  end if;
+
+  if now() - v_old.updated_at > interval '5 minutes' then
+    insert into awp.review_revisions (review_response_id, participant_id, item_key, snapshot)
+    values (v_old.id, v_participant, p_item_key, to_jsonb(v_old));
+    v_revision := true;
+  end if;
+
+  update awp.review_responses set
+    choice = v_choice,
+    comment = v_comment,
+    answer = v_answer,
+    updated_at = now()
+  where id = v_old.id
+  returning updated_at into v_updated;
+
+  return jsonb_build_object('id', v_old.id, 'updated_at', v_updated, 'revision', v_revision);
+end
+$$;
+
+revoke all on function awp.save_review(text, text, jsonb) from public;
+grant execute on function awp.save_review(text, text, jsonb) to awp_app;
 
 -- Restauração: awp_restore cria e apaga apenas o próprio schema de teste.
 do $$

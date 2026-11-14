@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { connection } from "next/server";
 import { loadAdminData } from "../_lib/data";
 import { buildReport } from "../_lib/report";
+import { buildReviewReport } from "../_lib/review";
 import { isAdmin } from "../_lib/session";
 import AdminDashboard from "./AdminDashboard";
 import AdminLogin from "./AdminLogin";
@@ -24,5 +25,6 @@ export default async function AdminPage() {
     );
   }
   if (!(await isAdmin())) return <AdminLogin />;
-  return <AdminDashboard report={buildReport(await loadAdminData())} />;
+  const data = await loadAdminData();
+  return <AdminDashboard report={buildReport(data)} review={buildReviewReport(data)} />;
 }

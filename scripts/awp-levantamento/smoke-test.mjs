@@ -146,6 +146,68 @@ const pdfRes = await call("GET", `${path}/api/admin/export/pdf`, { cookie: admin
 const pdf = Buffer.from(await pdfRes.arrayBuffer());
 check(pdfRes.status === 200 && pdf.subarray(0, 5).toString() === "%PDF-", `PDF consolidado gerado (${Math.round(pdf.length / 1024)} KB)`);
 
+// Revisão (segunda rodada)
+check((await act({ action: "phase", phase: "inventada" })).status === 400, "fase inválida recusada");
+check((await act({ action: "phase", phase: "revisao" })).status === 200, "revisão aberta pelo painel");
+check(
+  (await save(manoel?.value, [{ questionKey: "m1.q1", answer: { selected: ["safra"] } }])).status === 409,
+  "na revisão, o questionário não aceita mudanças",
+);
+const reviewSave = (cookie, items) => call("POST", `${path}/api/review`, { body: { items }, cookie, headers: withOrigin });
+const reviewMarker = `REVISAO-${Date.now()}`;
+check(
+  (await reviewSave(manoel?.value, [{ itemKey: "entendimento.1.2", value: { choice: "nao", comment: reviewMarker } }])).status === 200,
+  "Manoel grava a revisão",
+);
+check(
+  (await reviewSave(manoel?.value, [{ itemKey: "duvida.1.1", value: { choice: "resolvida" } }])).status === 400,
+  "item que é só do Cadene: recusado para o Manoel",
+);
+check((await reviewSave(manoel?.value, [{ itemKey: "inventado", value: {} }])).status === 400, "item desconhecido: recusado");
+check(
+  (await reviewSave(undefined, [{ itemKey: "final.mais", value: { comment: "x" } }])).status === 401,
+  "sem cookie: não grava a revisão",
+);
+check(
+  (await reviewSave(cadene?.value, [{ itemKey: "duvida.1.1", value: { choice: "resolvida" } }])).status === 200,
+  "Cadene grava a revisão",
+);
+const manoelReview = await (await call("GET", path, { cookie: manoel?.value })).text();
+check(manoelReview.includes("Revisão das respostas") && manoelReview.includes(reviewMarker), "Manoel vê a revisão com o que gravou");
+const cadeneReview = await (await call("GET", path, { cookie: cadene?.value })).text();
+check(cadeneReview.includes(marker), "na revisão, o Cadene vê a resposta do Manoel da primeira rodada");
+check(!cadeneReview.includes(reviewMarker), "o Cadene NÃO vê o que o Manoel escreveu na revisão");
+
+const enterVisitor = await call("POST", `${path}/api/participant`, { body: { name: "Visitante", code }, headers: ip(13) });
+const visitor = cookieFrom(enterVisitor, "awp_lv_p");
+const visitorPage = await (await call("GET", path, { cookie: visitor?.value })).text();
+check(
+  visitorPage.includes("Não encontramos respostas suas") && !visitorPage.includes(marker),
+  "quem entra sem respostas não vê a revisão nem as respostas dos outros",
+);
+check(
+  (await reviewSave(visitor?.value, [{ itemKey: "final.mais", value: { comment: "x" } }])).status === 403,
+  "quem não respondeu não grava a revisão",
+);
+
+const previewPage = await (await call("GET", `${path}/admin/revisao?como=cadene`, { cookie: admin?.value })).text();
+check(previewPage.includes("Prévia do administrador"), "painel mostra a prévia da revisão");
+check(!(await (await call("GET", `${path}/admin/revisao?como=cadene`)).text()).includes(marker), "prévia sem senha não mostra respostas");
+const dashboardReview = await (await call("GET", `${path}/admin`, { cookie: admin?.value })).text();
+check(dashboardReview.includes(reviewMarker), "painel mostra a revisão gravada");
+check(
+  (await act({ action: "confirm_rule", questionKey: "m1.q2", body: "Regra confirmada na revisão" })).status === 200,
+  "regra confirmada a partir da revisão",
+);
+const exportedReview = await (await call("GET", `${path}/api/admin/export/json`, { cookie: admin?.value })).json();
+check(
+  verifyExportFile(exportedReview).ok && exportedReview.data.review_responses.some((r) => r.comment === reviewMarker),
+  "JSON exportado inclui a revisão",
+);
+const pdfReview = await call("GET", `${path}/api/admin/export/pdf`, { cookie: admin?.value });
+check(pdfReview.status === 200, "PDF consolidado com a revisão gerado");
+check((await act({ action: "phase", phase: "questionario" })).status === 200, "questionário reaberto ao fim do teste");
+
 // Bloqueio por tentativas
 let last = 0;
 for (let i = 0; i < 6; i++) {

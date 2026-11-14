@@ -18,12 +18,14 @@ type Props = {
   onChange: (value: AnswerValue) => void;
   /** Gravar já (ao sair de um campo). */
   onCommit: () => void;
+  /** Na revisão ("Responder de novo") não há a marcação "Preciso discutir isso". */
+  hideDiscussion?: boolean;
 };
 
 const inputClass =
   "w-full rounded-xl border border-border bg-background px-4 py-3 text-base outline-none focus:border-primary focus:ring-2 focus:ring-primary/20";
 
-export default function QuestionCard({ question, value, onChange, onCommit }: Props) {
+export default function QuestionCard({ question, value, onChange, onCommit, hideDiscussion }: Props) {
   const status = individualStatus(question, value);
   const missing = status === "em_andamento" ? missingParts(question, value) : [];
   const [showComplement, setShowComplement] = useState(value.complement.trim() !== "");
@@ -166,23 +168,25 @@ export default function QuestionCard({ question, value, onChange, onCommit }: Pr
         )}
       </div>
 
-      <label className="mt-4 flex cursor-pointer items-start gap-3 rounded-xl border border-dashed border-amber-300 bg-amber-50/60 px-4 py-3">
-        <input
-          type="checkbox"
-          checked={value.needs_discussion}
-          onChange={(e) => {
-            set({ needs_discussion: e.target.checked });
-            onCommit();
-          }}
-          className="mt-0.5 h-5 w-5 shrink-0 accent-amber-600"
-        />
-        <span>
-          <span className="block text-base font-semibold text-amber-900">Preciso discutir isso</span>
-          <span className="block text-sm text-amber-900/80">
-            Marque se ainda não tem certeza ou quer conversar sobre este ponto. A resposta pode ficar incompleta.
+      {!hideDiscussion && (
+        <label className="mt-4 flex cursor-pointer items-start gap-3 rounded-xl border border-dashed border-amber-300 bg-amber-50/60 px-4 py-3">
+          <input
+            type="checkbox"
+            checked={value.needs_discussion}
+            onChange={(e) => {
+              set({ needs_discussion: e.target.checked });
+              onCommit();
+            }}
+            className="mt-0.5 h-5 w-5 shrink-0 accent-amber-600"
+          />
+          <span>
+            <span className="block text-base font-semibold text-amber-900">Preciso discutir isso</span>
+            <span className="block text-sm text-amber-900/80">
+              Marque se ainda não tem certeza ou quer conversar sobre este ponto. A resposta pode ficar incompleta.
+            </span>
           </span>
-        </span>
-      </label>
+        </label>
+      )}
 
       {missing.length > 0 && (
         <ul className="mt-3 space-y-0.5 text-sm text-muted">

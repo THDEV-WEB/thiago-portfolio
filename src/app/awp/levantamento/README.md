@@ -143,14 +143,49 @@ dias sem uso (os dados são preservados; reative pelo painel do Supabase).
   arquivos em dois lugares.
 - Não há exclusão automática de respostas.
 
+## Revisão (segunda rodada)
+
+Depois que os dois responderam, a revisão mostra a cada um as respostas do
+outro e pede confirmação ou alinhamento, item por item. O conteúdo fica em
+`_content/revisao.ts`, e cada `{3.6}` nos textos vira o link "ver 3.6". As
+respostas da revisão ficam em `awp.review_responses` e nunca alteram as
+respostas originais.
+
+**Fase da ferramenta** (painel → Revisão → Fase), gravada em `awp.app_settings`:
+
+| Fase | Questionário | Revisão |
+|---|---|---|
+| `questionario` (padrão) | aberto | não aparece |
+| `revisao` | só leitura | aberta |
+| `encerrado` | só leitura | só leitura |
+
+- O banco também recusa gravações fora da fase: `save_answer` dá
+  `questionario_fechado` e `save_review` dá `revisao_fechada`.
+- Só revisa quem respondeu identificado como Manoel ou Cadene. Quem entra sem
+  respostas (outro aparelho, aba anônima) vê um aviso para falar com o Thiago.
+- **Prévia:** painel → "Ver como o Manoel/Cadene" mostra a tela deles, só
+  leitura, em qualquer fase. Use antes de abrir a revisão.
+- **Regras:** em cada item, "Salvar como regra e confirmar" grava o texto
+  (editável) como nova versão da regra e marca a pergunta como confirmada.
+- **JSON:** formato versão 2, com `app_settings`, `review_responses` e
+  `review_revisions`. Arquivos da versão 1 (primeira rodada) continuam
+  verificáveis e restauráveis.
+
+**Ordem para publicar mudanças de banco:** primeiro `awp:db-setup` no Supabase
+(só acrescenta tabelas e funções e é idempotente), depois o deploy do código. O
+código novo consulta tabelas que precisam existir.
+
 ## Desenvolvimento e testes
 
 ```bash
 npm run awp:dev-db            # banco local (PGlite) na porta 55432, nada no Supabase
 AWP_ADMIN_DATABASE_URL=postgres://postgres@127.0.0.1:55432/postgres npm run awp:db-setup
-npm run test:awp              # 53 testes: regras, permissões reais do banco, exportação, restauração, PDF
+npm run test:awp              # 80 testes: regras, revisão, permissões reais do banco, exportação, restauração, PDF
 AWP_SMOKE_URL=http://localhost:3100 AWP_ACCESS_CODE=... AWP_ADMIN_PASSWORD=... npm run awp:smoke-test
 ```
+
+No app local, defina `AWP_DB_POOL_MAX=1`: o PGlite atende todas as conexões
+numa sessão só, e consultas paralelas se misturam.
 
 `awp:smoke-test` cria participantes de teste. Rode só em ambiente local ou na
 Preview, nunca no banco com respostas reais.

@@ -12,6 +12,26 @@ import {
 } from "./divergence";
 import { formatDateTime } from "./format";
 import { otherAnswerTitle, type Report, type ReportAnswer, type ReportQuestion } from "./report";
+import {
+  PHASE_LABEL,
+  REVIEW_STATUS_LABEL,
+  SECTION_ORDER,
+  choiceOf,
+  plainText,
+  reviewQuestion,
+  reviewTitle,
+  type ReviewReport,
+} from "./review";
+import { REVIEW_SECTIONS } from "../_content/revisao";
+
+// Caracteres fora da codificação da Helvetica embutida (WinAnsi) não aparecem
+// no PDF: seta vira "->" e o resto (emoji, por exemplo) é removido.
+const WIN_ANSI_EXTRA = "€‚ƒ„…†‡ˆ‰Š‹ŒŽ‘’“”•–—˜™š›œžŸ";
+function pdfSafe(text: string): string {
+  return text
+    .replace(/→/g, "->")
+    .replace(/[^\n\x20-\xff]/g, (c) => (WIN_ANSI_EXTRA.includes(c) ? c : ""));
+}
 
 const colors = {
   text: "#0f1b2d",
@@ -160,7 +180,65 @@ function QuestionBlock({ q }: { q: ReportQuestion }) {
   );
 }
 
-export function ReportDocument({ report, generatedAt }: { report: Report; generatedAt: Date }) {
+function ReviewPage({ review, generated }: { review: ReviewReport; generated: string }) {
+  return (
+    <Page size="A4" style={s.page}>
+      <Text style={s.eyebrow}>Segunda rodada</Text>
+      <Text style={s.h2}>Revisão das respostas</Text>
+      <Text style={s.muted}>
+        Fase: {PHASE_LABEL[review.phase]} · Manoel revisou {review.progress.manoel.done} de {review.progress.manoel.total} ·
+        Cadene revisou {review.progress.cadene.done} de {review.progress.cadene.total}
+      </Text>
+      {SECTION_ORDER.map((section) => {
+        const rows = review.items.filter((r) => r.item.section === section);
+        if (rows.length === 0) return null;
+        return (
+          <View key={section} style={s.section}>
+            <Text style={s.h3}>{pdfSafe(REVIEW_SECTIONS[section].title)}</Text>
+            {rows.map((r) => {
+              const question = reviewQuestion(r.item);
+              return (
+                <View key={r.item.key} style={s.box} wrap={false}>
+                  <Text style={s.label}>
+                    {question ? `${question.number}. ` : ""}
+                    {pdfSafe(reviewTitle(r.item))}
+                  </Text>
+                  <View style={s.badges}>
+                    <Text style={r.status === "divergem" || r.status === "ajustar" || r.status === "comparar" ? s.warn : s.badge}>
+                      {REVIEW_STATUS_LABEL[r.status]}
+                    </Text>
+                  </View>
+                  {r.item.text && <Text style={s.muted}>{pdfSafe(plainText(r.item.text))}</Text>}
+                  {r.item.bullets?.map((b, i) => (
+                    <Text key={i} style={s.muted}>
+                      - {pdfSafe(plainText(b))}
+                    </Text>
+                  ))}
+                  {r.item.audience.map((slot) => {
+                    const v = r.bySlot[slot]?.response.value;
+                    const choice = v ? choiceOf(r.item, v.choice) : undefined;
+                    return (
+                      <Text key={slot}>
+                        <Text style={s.label}>{SLOT_LABEL[slot]}: </Text>
+                        {!v ? "ainda não respondeu." : choice ? pdfSafe(choice.label) : ""}
+                        {v?.comment.trim() ? ` · ${pdfSafe(v.comment.trim())}` : ""}
+                        {v?.answer && question ? ` · Nova resposta: ${pdfSafe(describeAnswer(question, v.answer).join("; "))}` : ""}
+                        {v?.answer?.explanation.trim() ? ` · ${pdfSafe(v.answer.explanation.trim())}` : ""}
+                      </Text>
+                    );
+                  })}
+                </View>
+              );
+            })}
+          </View>
+        );
+      })}
+      <Footer generatedAt={generated} />
+    </Page>
+  );
+}
+
+export function ReportDocument({ report, generatedAt, review }: { report: Report; generatedAt: Date; review?: ReviewReport }) {
   const generated = formatDateTime(generatedAt.toISOString());
   const modules = [...new Map(report.questions.map((q) => [q.module.key, q.module])).values()];
   const pending = report.questions.filter((q) => q.validation !== "confirmada" && q.coverage !== "ambos");
@@ -225,6 +303,10 @@ export function ReportDocument({ report, generatedAt }: { report: Report; genera
         </Page>
       ))}
 
+      {review && (review.phase !== "questionario" || review.items.some((r) => r.bySlot.manoel || r.bySlot.cadene)) && (
+        <ReviewPage review={review} generated={generated} />
+      )}
+
       <Page size="A4" style={s.page}>
         <Text style={s.h2}>Regras de negócio confirmadas</Text>
         {confirmed.length === 0 && <Text style={s.muted}>Nenhuma regra confirmada até a geração deste relatório.</Text>}
@@ -277,7 +359,7 @@ export function ReportDocument({ report, generatedAt }: { report: Report; genera
   );
 }
 
-export async function renderReportPdf(report: Report, generatedAt: Date): Promise<Uint8Array> {
-  const buffer = await renderToBuffer(<ReportDocument report={report} generatedAt={generatedAt} />);
+export async function renderReportPdf(report: Report, generatedAt: Date, review?: ReviewReport): Promise<Uint8Array> {
+  const buffer = await renderToBuffer(<ReportDocument report={report} generatedAt={generatedAt} review={review} />);
   return new Uint8Array(buffer);
 }
