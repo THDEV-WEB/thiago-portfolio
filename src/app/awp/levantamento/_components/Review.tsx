@@ -20,16 +20,23 @@ type Props = {
   initial: InitialReviews;
   /** Revisão encerrada: tudo só leitura. */
   closed?: boolean;
-  /** Prévia do administrador: só leitura e nada é salvo. */
+  /**
+   * Prévia do administrador: dá para clicar e escrever, mas nada sai da
+   * página (nem para o servidor, nem para o armazenamento do navegador).
+   */
   preview?: boolean;
 };
 
 export default function Review({ participant, shared, initial, closed = false, preview = false }: Props) {
   const router = useRouter();
-  const { values, update, flush, state, pendingCount } = useReviewAutosave(participant.id, initial);
+  const saved = useReviewAutosave(participant.id, initial);
+  // Prévia: respostas só na memória desta página; recarregar volta ao estado real.
+  const [previewValues, setPreviewValues] = useState<Record<string, ReviewValue>>(() =>
+    Object.fromEntries(Object.entries(initial).map(([k, v]) => [k, v.value])),
+  );
   const [tab, setTab] = useState<"revisao" | "respostas">("revisao");
   const [openQuestion, setOpenQuestion] = useState<string | null>(null);
-  const readOnly = closed || preview;
+  const values = preview ? previewValues : saved.values;
   const viewer = participant.slot;
 
   const mine = itemsFor(viewer);
@@ -37,11 +44,14 @@ export default function Review({ participant, shared, initial, closed = false, p
   const done = required.filter((i) => reviewComplete(i, values[i.key])).length;
   const valueOf = (key: string): ReviewValue => values[key] ?? emptyReview();
   const change = (key: string, value: ReviewValue) => {
-    if (!readOnly) update(key, value);
+    if (closed) return;
+    if (preview) setPreviewValues((prev) => ({ ...prev, [key]: value }));
+    else saved.update(key, value);
   };
   const commit = () => {
-    if (!readOnly) void flush();
+    if (!closed && !preview) void saved.flush();
   };
+  const flush = saved.flush;
 
   async function switchParticipant() {
     if (preview) return;
@@ -55,7 +65,8 @@ export default function Review({ participant, shared, initial, closed = false, p
     <main className="mx-auto max-w-3xl px-4 pb-32 pt-5 sm:px-6 sm:pt-8">
       {preview && (
         <p className="mb-4 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-          Prévia do administrador: esta é a revisão como o {viewer === "manoel" ? "Manoel" : "Cadene"} vê. Nada aqui é salvo.
+          Prévia do administrador: esta é a revisão como o {viewer === "manoel" ? "Manoel" : "Cadene"} vê. Pode clicar e
+          escrever à vontade: nada é salvo, e ao recarregar a página tudo volta como estava.
         </p>
       )}
       {closed && !preview && (
@@ -134,7 +145,7 @@ export default function Review({ participant, shared, initial, closed = false, p
                 {info.intro && <p className="mt-2 text-base leading-relaxed text-muted">{info.intro}</p>}
                 <div className="mt-4 grid grid-cols-1 gap-4">
                   {section === "duvida" ? (
-                    <DoubtGroup items={items} values={values} disabled={readOnly} onChange={change} onCommit={commit} onRef={setOpenQuestion} />
+                    <DoubtGroup items={items} values={values} disabled={closed} onChange={change} onCommit={commit} onRef={setOpenQuestion} />
                   ) : (
                     items.map((item) => (
                       <ReviewCard
@@ -143,7 +154,7 @@ export default function Review({ participant, shared, initial, closed = false, p
                         value={valueOf(item.key)}
                         viewer={viewer}
                         shared={shared}
-                        disabled={readOnly}
+                        disabled={closed}
                         onChange={(v) => change(item.key, v)}
                         onCommit={commit}
                         onRef={setOpenQuestion}
@@ -164,7 +175,7 @@ export default function Review({ participant, shared, initial, closed = false, p
       )}
 
       <QuestionDrawer questionKey={openQuestion} shared={shared} viewer={viewer} onClose={() => setOpenQuestion(null)} />
-      {!readOnly && <SaveIndicator state={state} pendingCount={pendingCount} />}
+      {!closed && !preview && <SaveIndicator state={saved.state} pendingCount={saved.pendingCount} />}
     </main>
   );
 }
